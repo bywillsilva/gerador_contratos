@@ -18,6 +18,8 @@ export function Header() {
         return 'Preencher Contrato';
       case 'preview':
         return 'Visualizar Contrato';
+      case 'pdf-merge':
+        return 'Juntar PDFs';
       default:
         return 'Gerador de Contratos';
     }
@@ -33,6 +35,8 @@ export function Header() {
         return 'Preencha dados comerciais, qualificacao do cliente e pagamento.';
       case 'preview':
         return 'Revise o contrato final com a mesma composicao do PDF.';
+      case 'pdf-merge':
+        return 'Una contrato, anexos e documentos em um unico PDF final.';
       default:
         return 'Sistema profissional para contratos de esquadrias de aluminio.';
     }

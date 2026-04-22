@@ -6,6 +6,7 @@ import { Header } from '@/components/header';
 import { Dashboard } from '@/components/dashboard';
 import { TemplateEditor } from '@/components/template-editor';
 import { ContractForm } from '@/components/contract-form';
+import { PdfMerger } from '@/components/pdf-merger';
 import { Loader2 } from 'lucide-react';
 
 // Carregar ContractPreview dinamicamente para evitar problemas com jsPDF no SSR
@@ -32,6 +33,7 @@ function AppContent() {
         {currentScreen === 'editor' && <TemplateEditor />}
         {currentScreen === 'form' && <ContractForm />}
         {currentScreen === 'preview' && <ContractPreview />}
+        {currentScreen === 'pdf-merge' && <PdfMerger />}
       </main>
     </div>
   );

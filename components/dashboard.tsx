@@ -5,6 +5,7 @@ import {
   FilePlus,
   FileEdit,
   FolderOpen,
+  Files,
   Trash2,
   Clock,
   ArrowRight,
@@ -60,6 +61,16 @@ const DASHBOARD_ACTIONS = [
     icon: FolderOpen,
     iconClassName: 'bg-[#5a5b5d] text-white',
     buttonLabel: 'Ver Templates',
+    buttonVariant: 'outline' as const,
+  },
+  {
+    key: 'pdf-merge',
+    title: 'Juntar PDFs',
+    description: 'Una contrato, anexos, propostas e comprovantes em um unico arquivo PDF para envio ao cliente.',
+    badge: 'Ferramenta PDF',
+    icon: Files,
+    iconClassName: 'bg-primary/10 text-primary',
+    buttonLabel: 'Abrir Ferramenta',
     buttonVariant: 'outline' as const,
   },
 ];
@@ -120,6 +131,11 @@ export function Dashboard() {
 
     if (actionKey === 'edit') {
       handleEditTemplate();
+      return;
+    }
+
+    if (actionKey === 'pdf-merge') {
+      navigate('pdf-merge');
       return;
     }
 
@@ -209,7 +225,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section className="mt-8 grid gap-5 xl:grid-cols-3">
+      <section className="mt-8 grid gap-5 xl:grid-cols-4">
         {DASHBOARD_ACTIONS.map((action) => {
           const Icon = action.icon;
 
