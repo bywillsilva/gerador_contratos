@@ -6,11 +6,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/lib/navigation-context';
 import { replaceTagsInTemplate, formatCurrency, valueToExtenso } from '@/lib/contract-utils';
-import { processTemplateToHTML, generateDocumentHTML, DOCUMENT_STYLES } from '@/lib/template-processor';
+import {
+  generateDocumentBodyHTML,
+  generateDocumentHTML,
+  DOCUMENT_STYLES,
+} from '@/lib/template-processor';
 import type { ClientDataFisica } from '@/lib/types';
 
 export function ContractPreview() {
-  const { navigate, templateContent, formData } = useNavigation();
+  const {
+    navigate,
+    templateContent,
+    templateFontFamily,
+    templateLogoDataUrl,
+    templateLogoWidthMm,
+    templateLogoPosition,
+    formData,
+  } = useNavigation();
   const previewRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -30,7 +42,11 @@ export function ContractPreview() {
   }
 
   const processedContent = replaceTagsInTemplate(templateContent, formData);
-  const htmlContent = processTemplateToHTML(processedContent);
+  const htmlContent = generateDocumentBodyHTML(processedContent, {
+    logoDataUrl: templateLogoDataUrl,
+    logoWidthMm: templateLogoWidthMm,
+    logoPosition: templateLogoPosition,
+  });
 
   // Função para imprimir/salvar como PDF usando a API de impressão do navegador
   const handlePrint = () => {
@@ -46,7 +62,16 @@ export function ContractPreview() {
         : formData.clientData.razao_social;
 
     // Usar a função unificada para gerar o HTML do documento
-    const documentHTML = generateDocumentHTML(processedContent, `Contrato - ${clientName}`);
+    const documentHTML = generateDocumentHTML(
+      processedContent,
+      `Contrato - ${clientName}`,
+      {
+        fontFamily: templateFontFamily,
+        logoDataUrl: templateLogoDataUrl,
+        logoWidthMm: templateLogoWidthMm,
+        logoPosition: templateLogoPosition,
+      }
+    );
     printWindow.document.write(documentHTML);
     printWindow.document.close();
     
@@ -138,15 +163,20 @@ export function ContractPreview() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-foreground">Visualizar Contrato</h2>
-          <p className="text-sm text-muted-foreground">
-            Revise o contrato antes de fazer o download
-          </p>
-        </div>
-        <div className="flex gap-2">
+    <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 xl:px-8">
+      <div className="app-hero-surface mb-6 rounded-[1.8rem] px-5 py-5 sm:px-6">
+        <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="space-y-3">
+            <span className="app-eyebrow">Documento final</span>
+            <div>
+              <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">Visualizar Contrato</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
+                Revise a composicao do documento antes de imprimir ou baixar o PDF final.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2 sm:justify-end">
           <Button variant="outline" onClick={() => navigate('form')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Editar Dados
@@ -174,25 +204,26 @@ export function ContractPreview() {
           </Button>
         </div>
       </div>
+      </div>
 
       {/* Documento Simulado A4 */}
-      <Card className="overflow-hidden">
-        <CardHeader className="border-b bg-muted/50 py-3">
-          <CardTitle className="flex items-center justify-between text-sm font-medium text-muted-foreground">
+      <Card className="overflow-hidden border-white/60">
+          <CardHeader className="border-b bg-white/55 py-3">
+            <CardTitle className="flex flex-col gap-1 text-sm font-medium text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>Prévia do Documento (A4 - 210mm x 297mm)</span>
             <span className="text-xs">O PDF gerado terá esta aparência</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="flex justify-center bg-gray-200 p-4 sm:p-6">
+        <CardContent className="overflow-x-auto bg-[#e6f6f6] p-4 sm:p-6">
           {/* Página A4 simulada */}
           <div
             ref={previewRef}
-            className="w-full bg-white shadow-xl"
+            className="mx-auto min-w-[210mm] bg-white shadow-xl"
             style={{
               maxWidth: '210mm',
               minHeight: '297mm',
               padding: '20mm',
-              fontFamily: DOCUMENT_STYLES.page.fontFamily,
+               fontFamily: templateFontFamily || DOCUMENT_STYLES.page.fontFamily,
               fontSize: DOCUMENT_STYLES.page.fontSize,
               lineHeight: DOCUMENT_STYLES.page.lineHeight,
               color: DOCUMENT_STYLES.page.color,
@@ -207,7 +238,7 @@ export function ContractPreview() {
       </Card>
 
       {/* Resumo dos Dados */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <Card>
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Cliente</p>
@@ -239,6 +270,29 @@ export function ContractPreview() {
                 year: 'numeric',
               })}
             </p>
+          </CardContent>
+        </Card>
+        <Card className="lg:col-span-3">
+          <CardContent className="flex flex-wrap items-center gap-2 py-4">
+            <p className="mr-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+              Aparencia
+            </p>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
+              Fonte: {templateFontFamily}
+            </span>
+            <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
+              Logo: {templateLogoDataUrl ? 'Ativa' : 'Sem logo'}
+            </span>
+            {templateLogoDataUrl ? (
+              <>
+                <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
+                  Tamanho: {templateLogoWidthMm} mm
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 text-xs text-foreground">
+                  Posicao: {templateLogoPosition === 'left' ? 'Esquerda' : templateLogoPosition === 'right' ? 'Direita' : 'Centralizada'}
+                </span>
+              </>
+            ) : null}
           </CardContent>
         </Card>
       </div>

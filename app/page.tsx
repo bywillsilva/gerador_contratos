@@ -25,9 +25,9 @@ function AppContent() {
   const { currentScreen } = useNavigation();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="app-shell min-h-screen bg-background">
       <Header />
-      <main>
+      <main className="app-page pb-10">
         {currentScreen === 'dashboard' && <Dashboard />}
         {currentScreen === 'editor' && <TemplateEditor />}
         {currentScreen === 'form' && <ContractForm />}

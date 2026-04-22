@@ -4,84 +4,84 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #F5F7FA;
-  --foreground: #1F2937;
-  --card: #FFFFFF;
-  --card-foreground: #1F2937;
-  --popover: #FFFFFF;
-  --popover-foreground: #1F2937;
-  --primary: #1E3A5F;
-  --primary-foreground: #FFFFFF;
-  --secondary: #F5F7FA;
-  --secondary-foreground: #1E3A5F;
-  --muted: #E5E7EB;
-  --muted-foreground: #6B7280;
-  --accent: #22C55E;
-  --accent-foreground: #FFFFFF;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #E5E7EB;
-  --input: #E5E7EB;
-  --ring: #1E3A5F;
-  --chart-1: #1E3A5F;
-  --chart-2: #22C55E;
-  --chart-3: #3B82F6;
-  --chart-4: #F59E0B;
-  --chart-5: #8B5CF6;
-  --radius: 0.5rem;
-  --sidebar: #FFFFFF;
-  --sidebar-foreground: #1F2937;
-  --sidebar-primary: #1E3A5F;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #F5F7FA;
-  --sidebar-accent-foreground: #1E3A5F;
-  --sidebar-border: #E5E7EB;
-  --sidebar-ring: #1E3A5F;
-  --tag: #3B82F6;
-  --tag-foreground: #FFFFFF;
+  --background: #f6fbfb;
+  --foreground: #242628;
+  --card: rgba(255, 255, 255, 0.86);
+  --card-foreground: #242628;
+  --popover: rgba(255, 255, 255, 0.96);
+  --popover-foreground: #242628;
+  --primary: #009ea3;
+  --primary-foreground: #ffffff;
+  --secondary: #e7f4f4;
+  --secondary-foreground: #4f5154;
+  --muted: #e9f3f3;
+  --muted-foreground: #65686b;
+  --accent: #61cfd2;
+  --accent-foreground: #153739;
+  --destructive: #c84f4f;
+  --destructive-foreground: #ffffff;
+  --border: #d3e8e9;
+  --input: #d3e8e9;
+  --ring: #009ea3;
+  --chart-1: #009ea3;
+  --chart-2: #61cfd2;
+  --chart-3: #5a5b5d;
+  --chart-4: #8edfe1;
+  --chart-5: #242628;
+  --radius: 1rem;
+  --sidebar: rgba(255, 255, 255, 0.9);
+  --sidebar-foreground: #242628;
+  --sidebar-primary: #009ea3;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7f4f4;
+  --sidebar-accent-foreground: #4f5154;
+  --sidebar-border: #d3e8e9;
+  --sidebar-ring: #009ea3;
+  --tag: #009ea3;
+  --tag-foreground: #ffffff;
 }
 
 .dark {
-  --background: #111827;
-  --foreground: #F9FAFB;
-  --card: #1F2937;
-  --card-foreground: #F9FAFB;
-  --popover: #1F2937;
-  --popover-foreground: #F9FAFB;
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-  --secondary: #374151;
-  --secondary-foreground: #F9FAFB;
-  --muted: #374151;
-  --muted-foreground: #9CA3AF;
-  --accent: #22C55E;
-  --accent-foreground: #FFFFFF;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #374151;
-  --input: #374151;
-  --ring: #3B82F6;
-  --chart-1: #3B82F6;
-  --chart-2: #22C55E;
-  --chart-3: #F59E0B;
-  --chart-4: #8B5CF6;
-  --chart-5: #EF4444;
-  --sidebar: #1F2937;
-  --sidebar-foreground: #F9FAFB;
-  --sidebar-primary: #3B82F6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #374151;
-  --sidebar-accent-foreground: #F9FAFB;
-  --sidebar-border: #374151;
-  --sidebar-ring: #3B82F6;
-  --tag: #3B82F6;
-  --tag-foreground: #FFFFFF;
+  --background: #101719;
+  --foreground: #f5fbfb;
+  --card: #162123;
+  --card-foreground: #f5fbfb;
+  --popover: #162123;
+  --popover-foreground: #f5fbfb;
+  --primary: #61cfd2;
+  --primary-foreground: #102223;
+  --secondary: #203235;
+  --secondary-foreground: #f5fbfb;
+  --muted: #223336;
+  --muted-foreground: #9ec6c8;
+  --accent: #00a6ab;
+  --accent-foreground: #ffffff;
+  --destructive: #ef6464;
+  --destructive-foreground: #ffffff;
+  --border: #2f484b;
+  --input: #2f484b;
+  --ring: #61cfd2;
+  --chart-1: #61cfd2;
+  --chart-2: #00a6ab;
+  --chart-3: #aeb3b5;
+  --chart-4: #8edfe1;
+  --chart-5: #f5fbfb;
+  --sidebar: #162123;
+  --sidebar-foreground: #f5fbfb;
+  --sidebar-primary: #61cfd2;
+  --sidebar-primary-foreground: #102223;
+  --sidebar-accent: #203235;
+  --sidebar-accent-foreground: #f5fbfb;
+  --sidebar-border: #2f484b;
+  --sidebar-ring: #61cfd2;
+  --tag: #61cfd2;
+  --tag-foreground: #102223;
 }
 
 @theme inline {
-  --font-sans: var(--font-inter), 'Inter', sans-serif;
+  --font-sans: var(--font-manrope), 'Manrope', sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback';
-  --font-serif: 'Georgia', 'Times New Roman', serif;
+  --font-serif: var(--font-merriweather), 'Merriweather', serif;
   --color-tag: var(--tag);
   --color-tag-foreground: var(--tag-foreground);
   --color-background: var(--background);
@@ -126,7 +126,77 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    background:
+      radial-gradient(circle at top left, rgba(0, 158, 163, 0.14), transparent 28%),
+      radial-gradient(circle at top right, rgba(97, 207, 210, 0.16), transparent 32%),
+      linear-gradient(180deg, #fbfefe 0%, #f6fbfb 48%, #eaf5f5 100%);
+  }
   body {
     @apply bg-background text-foreground;
+    min-height: 100vh;
+    position: relative;
+    background:
+      radial-gradient(circle at top left, rgba(0, 158, 163, 0.08), transparent 22%),
+      radial-gradient(circle at 85% 0%, rgba(97, 207, 210, 0.1), transparent 28%),
+      linear-gradient(180deg, rgba(255, 255, 255, 0.56) 0%, rgba(255, 255, 255, 0.18) 100%);
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.65;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+    background-size: 24px 24px;
+    mask-image: radial-gradient(circle at center, black 22%, transparent 88%);
+  }
+  ::selection {
+    background: rgba(0, 158, 163, 0.2);
+    color: #242628;
+  }
+}
+
+@layer utilities {
+  .app-shell {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .app-page {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-hero-surface {
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.74)),
+      radial-gradient(circle at top right, rgba(0, 158, 163, 0.16), transparent 34%);
+    border: 1px solid rgba(211, 232, 233, 0.86);
+    box-shadow:
+      0 26px 60px -42px rgba(0, 92, 96, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(18px);
+  }
+
+  .app-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(0, 158, 163, 0.14);
+    background: rgba(255, 255, 255, 0.68);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(0, 126, 130, 0.9);
   }
 }

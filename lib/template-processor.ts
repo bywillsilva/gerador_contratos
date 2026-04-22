@@ -1,7 +1,6 @@
 // Processador unificado de templates para garantir consistencia
 // entre preview, impressao e geracao de PDF.
 
-// Estilos CSS inline para o documento final
 export const DOCUMENT_STYLES = {
   page: {
     fontFamily: 'Georgia, "Times New Roman", Times, serif',
@@ -40,14 +39,27 @@ export const DOCUMENT_STYLES = {
     paddingLeft: '24px',
     margin: '6px 0',
   },
+  orderedList: {
+    basePaddingLeft: 24,
+    levelIndent: 18,
+    margin: '6px 0',
+  },
 } as const;
 
 interface RenderOptions {
   highlightTags?: boolean;
 }
 
+interface DocumentRenderOptions {
+  fontFamily?: string;
+  logoDataUrl?: string;
+  logoWidthMm?: number;
+  logoPosition?: 'left' | 'center' | 'right';
+}
+
 const BULLET_SYMBOL = '\u2022';
 const BULLET_PREFIXES = [`${BULLET_SYMBOL} `, 'â€¢ ', 'Ã¢â‚¬Â¢ '];
+const ORDERED_LIST_PATTERN = /^(\d+(?:\.\d+)*\.?)\s+(.+)$/;
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -87,8 +99,25 @@ function renderAlignedBlock(content: string, align: 'center' | 'right', options:
 }
 
 function renderParagraph(content: string, options: RenderOptions): string {
+  const leadingWhitespaceMatch = content.match(/^[\t ]*/);
+  const leadingWhitespace = leadingWhitespaceMatch?.[0] ?? '';
+  const indentLevel = Array.from(leadingWhitespace).reduce((total, character) => {
+    if (character === '\t') return total + 1;
+    return total + 0.25;
+  }, 0);
+  const paddingLeft = indentLevel > 0 ? `${indentLevel * 24}px` : '0';
   const html = applyInlineFormatting(content.trim(), options).replace(/\n/g, '<br/>');
-  return `<p style="margin: ${DOCUMENT_STYLES.paragraph.margin}; text-align: ${DOCUMENT_STYLES.paragraph.textAlign}; text-indent: ${DOCUMENT_STYLES.paragraph.textIndent};">${html}</p>`;
+
+  return `<p style="margin: ${DOCUMENT_STYLES.paragraph.margin}; text-align: ${DOCUMENT_STYLES.paragraph.textAlign}; text-indent: ${DOCUMENT_STYLES.paragraph.textIndent}; padding-left: ${paddingLeft};">${html}</p>`;
+}
+
+function renderOrderedListItem(prefix: string, content: string, options: RenderOptions): string {
+  const nestingLevel = Math.max(prefix.split('.').filter(Boolean).length - 1, 0);
+  const paddingLeft =
+    DOCUMENT_STYLES.orderedList.basePaddingLeft +
+    nestingLevel * DOCUMENT_STYLES.orderedList.levelIndent;
+
+  return `<div style="padding-left: ${paddingLeft}px; margin: ${DOCUMENT_STYLES.orderedList.margin};"><span style="font-weight: 600;">${escapeHtml(prefix)}</span> ${applyInlineFormatting(content, options)}</div>`;
 }
 
 function renderTemplate(content: string, options: RenderOptions = {}): string {
@@ -151,20 +180,51 @@ function renderTemplate(content: string, options: RenderOptions = {}): string {
       continue;
     }
 
+    const orderedListMatch = trimmedLine.match(ORDERED_LIST_PATTERN);
+    if (orderedListMatch) {
+      const [, prefix, itemText] = orderedListMatch;
+      blocks.push(renderOrderedListItem(prefix, itemText, options));
+      continue;
+    }
+
     blocks.push(renderParagraph(rawLine, options));
   }
 
   return blocks.join('\n');
 }
 
-// Converte marcadores para estilos CSS inline (para HTML/PDF)
 export function processTemplateToHTML(content: string): string {
   return renderTemplate(content);
 }
 
-// Gera o HTML completo do documento para impressao/PDF
-export function generateDocumentHTML(content: string, title: string = 'Contrato'): string {
+function renderDocumentHeader(options: DocumentRenderOptions): string {
+  if (!options.logoDataUrl) return '';
+
+  const widthMm = Math.min(Math.max(options.logoWidthMm || 36, 10), 170);
+  const justifyContent =
+    options.logoPosition === 'left'
+      ? 'flex-start'
+      : options.logoPosition === 'right'
+        ? 'flex-end'
+        : 'center';
+
+  return `<header style="display: flex; justify-content: ${justifyContent}; margin: 0 0 18mm 0;"><img src="${escapeHtml(options.logoDataUrl)}" alt="Logo da empresa" style="display: block; width: ${widthMm}mm; height: auto; object-fit: contain;" /></header>`;
+}
+
+export function generateDocumentBodyHTML(content: string, options: DocumentRenderOptions = {}): string {
   const processedContent = processTemplateToHTML(content);
+  const headerHTML = renderDocumentHeader(options);
+
+  return `${headerHTML}<main class="document-content">${processedContent}</main>`;
+}
+
+export function generateDocumentHTML(
+  content: string,
+  title: string = 'Contrato',
+  options: DocumentRenderOptions = {}
+): string {
+  const fontFamily = options.fontFamily || DOCUMENT_STYLES.page.fontFamily;
+  const documentBody = generateDocumentBodyHTML(content, options);
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -183,7 +243,7 @@ export function generateDocumentHTML(content: string, title: string = 'Contrato'
       box-sizing: border-box;
     }
     body {
-      font-family: ${DOCUMENT_STYLES.page.fontFamily};
+      font-family: ${fontFamily};
       font-size: ${DOCUMENT_STYLES.page.fontSize};
       line-height: ${DOCUMENT_STYLES.page.lineHeight};
       color: ${DOCUMENT_STYLES.page.color};
@@ -207,14 +267,14 @@ export function generateDocumentHTML(content: string, title: string = 'Contrato'
   </style>
 </head>
 <body>
-  <main class="document-content">
-    ${processedContent}
-  </main>
+  ${documentBody}
 </body>
 </html>`;
 }
 
-// Para preview com destaque de tags (usado no editor de template)
-export function processTemplateForPreview(content: string): string {
-  return renderTemplate(content, { highlightTags: true });
+export function processTemplateForPreview(content: string, options: DocumentRenderOptions = {}): string {
+  const processedContent = renderTemplate(content, { highlightTags: true });
+  const headerHTML = renderDocumentHeader(options);
+
+  return `${headerHTML}<main class="document-content">${processedContent}</main>`;
 }

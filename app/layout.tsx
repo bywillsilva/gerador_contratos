@@ -1,18 +1,18 @@
 import type { Metadata } from 'next'
-import { Inter, Roboto } from 'next/font/google'
+import { Manrope, Merriweather } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const inter = Inter({ 
+const manrope = Manrope({ 
   subsets: ["latin"],
-  variable: '--font-inter',
+  variable: '--font-manrope',
   display: 'swap'
 });
 
-const roboto = Roboto({ 
+const merriweather = Merriweather({ 
   subsets: ["latin"],
   weight: ['400', '500', '700'],
-  variable: '--font-roboto',
+  variable: '--font-merriweather',
   display: 'swap'
 });
 
@@ -46,7 +46,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR" className="bg-background">
-      <body className={`${inter.variable} ${roboto.variable} font-sans antialiased`}>
+      <body className={`${manrope.variable} ${merriweather.variable} font-sans antialiased`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
