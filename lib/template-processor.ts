@@ -94,26 +94,52 @@ function applyInlineFormatting(value: string, options: RenderOptions): string {
   return html;
 }
 
-function renderAlignedBlock(content: string, align: 'left' | 'center' | 'right' | 'justify', options: RenderOptions): string {
-  const style = DOCUMENT_STYLES[align];
-  const lines = content
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .map((line) => applyInlineFormatting(line, options))
-    .join('<br/>');
-
-  return `<div style="text-align: ${style.textAlign}; margin: ${style.margin};">${lines}</div>`;
-}
-
-function renderParagraph(content: string, options: RenderOptions): string {
+function getIndentPadding(content: string): number {
   const leadingWhitespaceMatch = content.match(/^[\t ]*/);
   const leadingWhitespace = leadingWhitespaceMatch?.[0] ?? '';
   const indentLevel = Array.from(leadingWhitespace).reduce((total, character) => {
     if (character === '\t') return total + 1;
     return total + 0.25;
   }, 0);
-  const paddingLeft = indentLevel > 0 ? `${indentLevel * 24}px` : '0';
+
+  return indentLevel * 24;
+}
+
+function renderAlignedBlock(content: string, align: 'left' | 'center' | 'right' | 'justify', options: RenderOptions): string {
+  const style = DOCUMENT_STYLES[align];
+  const lines = content.split('\n').filter((line) => line.trim());
+  const renderedLines = lines.map((line) => {
+    const trimmedLine = line.trim();
+    const orderedListMatch = trimmedLine.match(ORDERED_LIST_PATTERN);
+    const indentPadding = getIndentPadding(line);
+
+    if (orderedListMatch) {
+      const [, prefix, itemText] = orderedListMatch;
+      const nestingLevel = Math.max(prefix.split('.').filter(Boolean).length - 1, 0);
+      const paddingLeft =
+        DOCUMENT_STYLES.orderedList.basePaddingLeft +
+        nestingLevel * DOCUMENT_STYLES.orderedList.levelIndent +
+        indentPadding;
+
+      return `<div style="text-align: ${style.textAlign}; padding-left: ${paddingLeft}px; margin: ${DOCUMENT_STYLES.orderedList.margin};"><span style="font-weight: 600;">${escapeHtml(prefix)}</span> ${applyInlineFormatting(itemText, options)}</div>`;
+    }
+
+    const bulletPrefix = BULLET_PREFIXES.find((prefix) => trimmedLine.startsWith(prefix));
+    if (bulletPrefix) {
+      const itemText = trimmedLine.replace(/^(?:\u2022 |Ã¢â‚¬Â¢ |ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ )/, '');
+      const paddingLeft = Number.parseInt(DOCUMENT_STYLES.list.paddingLeft, 10) + indentPadding;
+      return `<div style="text-align: ${style.textAlign}; padding-left: ${paddingLeft}px; margin: ${DOCUMENT_STYLES.list.margin};">${BULLET_SYMBOL} ${applyInlineFormatting(itemText, options)}</div>`;
+    }
+
+    return `<p style="text-align: ${style.textAlign}; padding-left: ${indentPadding}px; margin: ${DOCUMENT_STYLES.paragraph.margin};">${applyInlineFormatting(trimmedLine, options)}</p>`;
+  });
+
+  return `<div style="margin: ${style.margin};">${renderedLines.join('\n')}</div>`;
+}
+
+function renderParagraph(content: string, options: RenderOptions): string {
+  const paddingLeftValue = getIndentPadding(content);
+  const paddingLeft = paddingLeftValue > 0 ? `${paddingLeftValue}px` : '0';
   const html = applyInlineFormatting(content.trim(), options).replace(/\n/g, '<br/>');
 
   return `<p style="margin: ${DOCUMENT_STYLES.paragraph.margin}; text-align: ${DOCUMENT_STYLES.paragraph.textAlign}; text-indent: ${DOCUMENT_STYLES.paragraph.textIndent}; padding-left: ${paddingLeft};">${html}</p>`;
@@ -256,8 +282,8 @@ export function generateDocumentHTML(
   options: DocumentRenderOptions = {}
 ): string {
   const fontFamily = options.fontFamily || DOCUMENT_STYLES.page.fontFamily;
-  const documentBody = generateDocumentBodyHTML(content, options);
-  const pageMargin = options.logoDataUrl ? '42mm 20mm 24mm 20mm' : '24mm 20mm';
+  const processedContent = processTemplateToHTML(content);
+  const headerHTML = renderDocumentHeader(options);
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -268,7 +294,7 @@ export function generateDocumentHTML(
   <style>
     @page {
       size: A4;
-      margin: ${pageMargin};
+      margin: 20mm;
     }
     * {
       margin: 0;
@@ -292,6 +318,23 @@ export function generateDocumentHTML(
       width: 100%;
       margin: 0 0 14mm 0;
     }
+    .print-document {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .print-document td {
+      padding: 0;
+      vertical-align: top;
+    }
+    .print-document thead {
+      display: table-header-group;
+    }
+    .print-document tbody {
+      display: table-row-group;
+    }
+    .print-header-cell {
+      height: ${options.logoDataUrl ? '30mm' : '0'};
+    }
     h1, h2 {
       break-after: avoid;
       page-break-after: avoid;
@@ -304,15 +347,6 @@ export function generateDocumentHTML(
       body {
         padding: 0;
       }
-      .document-header {
-        position: fixed;
-        top: -28mm;
-        left: 0;
-        right: 0;
-        height: 22mm;
-        align-items: flex-start;
-        margin: 0 !important;
-      }
     }
     @media screen {
       body {
@@ -322,7 +356,18 @@ export function generateDocumentHTML(
   </style>
 </head>
 <body>
-  ${documentBody}
+  <table class="print-document">
+    <thead>
+      <tr>
+        <td class="print-header-cell">${headerHTML}</td>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><main class="document-content">${processedContent}</main></td>
+      </tr>
+    </tbody>
+  </table>
 </body>
 </html>`;
 }

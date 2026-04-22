@@ -11,7 +11,28 @@ import {
   generateDocumentHTML,
   DOCUMENT_STYLES,
 } from '@/lib/template-processor';
-import type { ClientDataFisica } from '@/lib/types';
+import type { ClientDataFisica, FormData as ContractFormData } from '@/lib/types';
+
+const PDF_PAGE_WIDTH_MM = 210;
+const PDF_PAGE_HEIGHT_MM = 297;
+const PDF_PAGE_MARGIN_MM = 20;
+const MM_TO_PX = 96 / 25.4;
+
+function getClientName(formData: ContractFormData) {
+  return formData.clientData.tipo === 'fisica'
+    ? (formData.clientData as ClientDataFisica).nome_cliente
+    : formData.clientData.razao_social;
+}
+
+function sanitizeFilenamePart(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '')
+    .substring(0, 30);
+}
 
 export function ContractPreview() {
   const {
@@ -168,6 +189,115 @@ export function ContractPreview() {
     */
   };
 
+  const downloadPDFDirectly = async () => {
+    setIsGenerating(true);
+
+    let staging: HTMLDivElement | null = null;
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const { jsPDF } = await import('jspdf');
+
+      if (!previewRef.current) {
+        throw new Error('Elemento de preview nao encontrado');
+      }
+
+      const sourceHeader = previewRef.current.querySelector('.document-header');
+      const sourceContent = previewRef.current.querySelector('.document-content');
+
+      if (!sourceContent) {
+        throw new Error('Conteudo do documento nao encontrado');
+      }
+
+      staging = document.createElement('div');
+      staging.style.position = 'fixed';
+      staging.style.left = '-10000px';
+      staging.style.top = '0';
+      staging.style.width = `${PDF_PAGE_WIDTH_MM}mm`;
+      staging.style.background = '#ffffff';
+      staging.style.fontFamily = templateFontFamily || DOCUMENT_STYLES.page.fontFamily;
+      staging.style.fontSize = DOCUMENT_STYLES.page.fontSize;
+      staging.style.lineHeight = DOCUMENT_STYLES.page.lineHeight;
+      staging.style.color = DOCUMENT_STYLES.page.color;
+      document.body.appendChild(staging);
+
+      const pages: HTMLDivElement[] = [];
+      const innerHeightPx = (PDF_PAGE_HEIGHT_MM - PDF_PAGE_MARGIN_MM * 2) * MM_TO_PX;
+
+      const createPage = () => {
+        const page = document.createElement('div');
+        page.style.width = `${PDF_PAGE_WIDTH_MM}mm`;
+        page.style.minHeight = `${PDF_PAGE_HEIGHT_MM}mm`;
+        page.style.boxSizing = 'border-box';
+        page.style.padding = `${PDF_PAGE_MARGIN_MM}mm`;
+        page.style.background = '#ffffff';
+        page.style.overflow = 'hidden';
+
+        if (sourceHeader) {
+          page.appendChild(sourceHeader.cloneNode(true));
+        }
+
+        const content = document.createElement('main');
+        content.className = 'document-content';
+        content.style.width = '100%';
+        page.appendChild(content);
+
+        staging?.appendChild(page);
+        pages.push(page);
+
+        return content;
+      };
+
+      let currentContent = createPage();
+
+      Array.from(sourceContent.children).forEach((child) => {
+        const clone = child.cloneNode(true);
+        currentContent.appendChild(clone);
+
+        const headerHeight = currentContent.previousElementSibling?.getBoundingClientRect().height || 0;
+        const availableHeight = innerHeightPx - headerHeight;
+
+        if (currentContent.children.length > 1 && currentContent.scrollHeight > availableHeight) {
+          currentContent.removeChild(clone);
+          currentContent = createPage();
+          currentContent.appendChild(clone);
+        }
+      });
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      for (let index = 0; index < pages.length; index += 1) {
+        const canvas = await html2canvas(pages[index], {
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          backgroundColor: '#ffffff',
+        });
+
+        if (index > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, PDF_PAGE_WIDTH_MM, PDF_PAGE_HEIGHT_MM);
+      }
+
+      const sanitizedName = sanitizeFilenamePart(getClientName(formData)) || 'cliente';
+      const date = formData.contractData.data || new Date().toISOString().split('T')[0];
+      pdf.save(`contrato_${sanitizedName}_${date}.pdf`);
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Nao foi possivel baixar o PDF diretamente. Vou abrir a opcao de impressao para voce salvar.');
+      handlePrint();
+    } finally {
+      staging?.remove();
+      setIsGenerating(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 xl:px-8">
       <div className="app-hero-surface mb-6 rounded-[1.8rem] px-5 py-5 sm:px-6">
@@ -195,7 +325,7 @@ export function ContractPreview() {
             <Printer className="mr-2 h-4 w-4" />
             Imprimir
           </Button>
-          <Button onClick={generatePDF} disabled={isGenerating}>
+          <Button onClick={downloadPDFDirectly} disabled={isGenerating}>
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
