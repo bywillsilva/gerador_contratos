@@ -5,7 +5,7 @@ import { ArrowLeft, Download, Edit, Loader2, Printer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/lib/navigation-context';
-import { replaceTagsInTemplate, formatCurrency, valueToExtenso } from '@/lib/contract-utils';
+import { replaceTagsInTemplate, formatCurrency, valueToExtenso, formatDate } from '@/lib/contract-utils';
 import {
   generateDocumentBodyHTML,
   generateDocumentHTML,
@@ -89,7 +89,12 @@ export function ContractPreview() {
   // Função para gerar PDF usando html2canvas + jsPDF (alternativa)
   const generatePDF = async () => {
     setIsGenerating(true);
-
+    handlePrint();
+    window.setTimeout(() => {
+      setIsGenerating(false);
+    }, 700);
+    return;
+    /*
     try {
       const html2canvas = (await import('html2canvas')).default;
       const { jsPDF } = await import('jspdf');
@@ -160,6 +165,7 @@ export function ContractPreview() {
     } finally {
       setIsGenerating(false);
     }
+    */
   };
 
   return (
@@ -264,11 +270,7 @@ export function ContractPreview() {
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Data</p>
             <p className="font-medium text-foreground">
-              {new Date(formData.contractData.data).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric',
-              })}
+              {formatDate(formData.contractData.data)}
             </p>
           </CardContent>
         </Card>

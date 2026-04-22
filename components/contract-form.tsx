@@ -56,6 +56,15 @@ function createPaymentInstallment(index: number): PaymentInstallment {
   };
 }
 
+function getTodayInputValue(): string {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 export function ContractForm() {
   const { navigate, setFormData } = useNavigation();
   const [clientType, setClientType] = useState<ClientType>('fisica');
@@ -97,7 +106,7 @@ export function ContractForm() {
     numero_contrato: '',
     valor: '',
     valor_extenso: '',
-    data: new Date().toISOString().split('T')[0],
+    data: getTodayInputValue(),
     endereco_obra: '',
     orcamento_numero: '',
     forma_pagamento: 'pix',
@@ -131,10 +140,6 @@ export function ContractForm() {
     setJuridicaData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleContractChange = (field: keyof ContractData, value: string) => {
-    setContractData((prev) => ({ ...prev, [field]: value }));
-  };
-
   const parseCurrencyToNumber = (value: string) => {
     const cleaned = value.replace(/[^\d,.-]/g, '');
     if (!cleaned) return 0;
@@ -145,6 +150,111 @@ export function ContractForm() {
 
     const parsed = Number.parseFloat(normalized);
     return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const formatNumberToCurrencyInput = (value: number) =>
+    value.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
+  const parseInputDate = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number);
+
+    if (!year || !month || !day) {
+      return new Date();
+    }
+
+    return new Date(year, month - 1, day);
+  };
+
+  const formatInputDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  };
+
+  const addDaysToInputDate = (value: string, days: number) => {
+    const date = parseInputDate(value);
+    date.setDate(date.getDate() + days);
+
+    return formatInputDate(date);
+  };
+
+  const distributeInstallments = (
+    totalValue: string,
+    installmentCount: string,
+    contractDate: string,
+    existingInstallments: PaymentInstallment[],
+    paymentMethod: PaymentMethod
+  ): PaymentInstallment[] => {
+    const count = installmentCount === '' ? 0 : Number.parseInt(installmentCount, 10);
+
+    if (!count) return [];
+
+    const totalInCents = Math.round(parseCurrencyToNumber(totalValue) * 100);
+    const baseValueInCents = count > 0 ? Math.floor(totalInCents / count) : 0;
+    const remainderInCents = count > 0 ? totalInCents % count : 0;
+    const defaultMethod: InstallmentPaymentMethod = paymentMethod === 'misto' ? 'pix' : paymentMethod;
+
+    return Array.from({ length: count }, (_, index) => {
+      const existing = existingInstallments[index];
+      const cents = baseValueInCents + (index < remainderInCents ? 1 : 0);
+
+      return {
+        id: existing?.id || `installment_${Date.now()}_${index}`,
+        metodo: existing?.metodo || defaultMethod,
+        valor: totalInCents > 0 ? formatNumberToCurrencyInput(cents / 100) : '',
+        vencimento: addDaysToInputDate(contractDate, index * 30),
+        observacao: existing?.observacao || (index === 0 ? 'sinal/entrada' : ''),
+      };
+    });
+  };
+
+  const calculateEntryPercentage = (data: ContractData) => {
+    const total = parseCurrencyToNumber(data.valor);
+    const entryValue = parseCurrencyToNumber(data.parcelas_pagamento[0]?.valor || '');
+
+    if (!total || !entryValue) return '';
+
+    const percentage = (entryValue / total) * 100;
+    return percentage.toLocaleString('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const handleContractChange = (field: keyof ContractData, value: string) => {
+    setContractData((prev) => {
+      const next = { ...prev, [field]: value };
+
+      if (field === 'valor' || field === 'data') {
+        next.parcelas_pagamento = distributeInstallments(
+          field === 'valor' ? value : prev.valor,
+          prev.quantidade_parcelas,
+          field === 'data' ? value : prev.data,
+          prev.parcelas_pagamento,
+          prev.forma_pagamento
+        );
+      }
+
+      if (field === 'forma_pagamento') {
+        next.parcelas_pagamento = distributeInstallments(
+          prev.valor,
+          prev.quantidade_parcelas,
+          prev.data,
+          prev.parcelas_pagamento,
+          value as PaymentMethod
+        );
+      }
+
+      return {
+        ...next,
+        entrada_percentual: calculateEntryPercentage(next),
+      };
+    });
   };
 
   const formatCPFInput = (value: string) => {
@@ -187,17 +297,21 @@ export function ContractForm() {
     const normalizedCount = digitsOnly === '' ? '' : String(Math.max(1, Number.parseInt(digitsOnly, 10)));
 
     setContractData((prev) => {
-      const targetCount = normalizedCount === '' ? 0 : Number.parseInt(normalizedCount, 10);
-      const nextInstallments = [...prev.parcelas_pagamento];
-
-      while (nextInstallments.length < targetCount) {
-        nextInstallments.push(createPaymentInstallment(nextInstallments.length));
-      }
-
-      return {
+      const next = {
         ...prev,
         quantidade_parcelas: normalizedCount,
-        parcelas_pagamento: nextInstallments.slice(0, targetCount || 0),
+        parcelas_pagamento: distributeInstallments(
+          prev.valor,
+          normalizedCount,
+          prev.data,
+          prev.parcelas_pagamento,
+          prev.forma_pagamento
+        ),
+      };
+
+      return {
+        ...next,
+        entrada_percentual: calculateEntryPercentage(next),
       };
     });
   };
@@ -207,12 +321,19 @@ export function ContractForm() {
     field: keyof PaymentInstallment,
     value: string
   ) => {
-    setContractData((prev) => ({
-      ...prev,
-      parcelas_pagamento: prev.parcelas_pagamento.map((installment) =>
-        installment.id === installmentId ? { ...installment, [field]: value } : installment
-      ),
-    }));
+    setContractData((prev) => {
+      const next = {
+        ...prev,
+        parcelas_pagamento: prev.parcelas_pagamento.map((installment) =>
+          installment.id === installmentId ? { ...installment, [field]: value } : installment
+        ),
+      };
+
+      return {
+        ...next,
+        entrada_percentual: calculateEntryPercentage(next),
+      };
+    });
   };
 
   const installmentTotal = contractData.parcelas_pagamento.reduce(
@@ -279,6 +400,7 @@ export function ContractForm() {
           : { tipo: 'juridica', ...juridicaData },
       contractData: {
         ...contractData,
+        entrada_percentual: calculateEntryPercentage(contractData),
         forma_pagamento: derivePaymentMethodFromInstallments(),
       },
     };
@@ -787,9 +909,9 @@ export function ContractForm() {
                 <Label htmlFor="entrada_percentual">% de Entrada</Label>
                 <Input
                   id="entrada_percentual"
-                  value={contractData.entrada_percentual}
-                  onChange={(e) => handleContractChange('entrada_percentual', e.target.value)}
-                  placeholder="Ex: 30"
+                  value={calculateEntryPercentage(contractData) || '0'}
+                  readOnly
+                  placeholder="Calculado pelo sinal"
                   className="mt-1.5"
                 />
               </div>

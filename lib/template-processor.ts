@@ -35,6 +35,14 @@ export const DOCUMENT_STYLES = {
     textAlign: 'right' as const,
     margin: '10px 0',
   },
+  left: {
+    textAlign: 'left' as const,
+    margin: '10px 0',
+  },
+  justify: {
+    textAlign: 'justify' as const,
+    margin: '10px 0',
+  },
   list: {
     paddingLeft: '24px',
     margin: '6px 0',
@@ -86,8 +94,8 @@ function applyInlineFormatting(value: string, options: RenderOptions): string {
   return html;
 }
 
-function renderAlignedBlock(content: string, align: 'center' | 'right', options: RenderOptions): string {
-  const style = align === 'center' ? DOCUMENT_STYLES.center : DOCUMENT_STYLES.right;
+function renderAlignedBlock(content: string, align: 'left' | 'center' | 'right' | 'justify', options: RenderOptions): string {
+  const style = DOCUMENT_STYLES[align];
   const lines = content
     .split('\n')
     .map((line) => line.trim())
@@ -146,6 +154,18 @@ function renderTemplate(content: string, options: RenderOptions = {}): string {
       continue;
     }
 
+    if (trimmedLine.startsWith('[LEFT]')) {
+      let blockContent = rawLine;
+      while (!blockContent.includes('[/LEFT]') && index + 1 < lines.length) {
+        index += 1;
+        blockContent += `\n${lines[index]}`;
+      }
+
+      const innerContent = blockContent.replace(/\[LEFT\]/g, '').replace(/\[\/LEFT\]/g, '').trim();
+      blocks.push(renderAlignedBlock(innerContent, 'left', options));
+      continue;
+    }
+
     if (trimmedLine.startsWith('[RIGHT]')) {
       let blockContent = rawLine;
       while (!blockContent.includes('[/RIGHT]') && index + 1 < lines.length) {
@@ -155,6 +175,18 @@ function renderTemplate(content: string, options: RenderOptions = {}): string {
 
       const innerContent = blockContent.replace(/\[RIGHT\]/g, '').replace(/\[\/RIGHT\]/g, '').trim();
       blocks.push(renderAlignedBlock(innerContent, 'right', options));
+      continue;
+    }
+
+    if (trimmedLine.startsWith('[JUSTIFY]')) {
+      let blockContent = rawLine;
+      while (!blockContent.includes('[/JUSTIFY]') && index + 1 < lines.length) {
+        index += 1;
+        blockContent += `\n${lines[index]}`;
+      }
+
+      const innerContent = blockContent.replace(/\[JUSTIFY\]/g, '').replace(/\[\/JUSTIFY\]/g, '').trim();
+      blocks.push(renderAlignedBlock(innerContent, 'justify', options));
       continue;
     }
 
@@ -208,7 +240,7 @@ function renderDocumentHeader(options: DocumentRenderOptions): string {
         ? 'flex-end'
         : 'center';
 
-  return `<header style="display: flex; justify-content: ${justifyContent}; margin: 0 0 18mm 0;"><img src="${escapeHtml(options.logoDataUrl)}" alt="Logo da empresa" style="display: block; width: ${widthMm}mm; height: auto; object-fit: contain;" /></header>`;
+  return `<header class="document-header" style="display: flex; width: 100%; justify-content: ${justifyContent}; margin: 0 0 14mm 0;"><img src="${escapeHtml(options.logoDataUrl)}" alt="Logo da empresa" style="display: block; width: ${widthMm}mm; height: auto; max-height: 20mm; object-fit: contain;" /></header>`;
 }
 
 export function generateDocumentBodyHTML(content: string, options: DocumentRenderOptions = {}): string {
@@ -225,6 +257,7 @@ export function generateDocumentHTML(
 ): string {
   const fontFamily = options.fontFamily || DOCUMENT_STYLES.page.fontFamily;
   const documentBody = generateDocumentBodyHTML(content, options);
+  const pageMargin = options.logoDataUrl ? '42mm 20mm 24mm 20mm' : '24mm 20mm';
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -235,7 +268,7 @@ export function generateDocumentHTML(
   <style>
     @page {
       size: A4;
-      margin: 20mm;
+      margin: ${pageMargin};
     }
     * {
       margin: 0;
@@ -254,9 +287,31 @@ export function generateDocumentHTML(
     .document-content {
       width: 100%;
     }
+    .document-header {
+      display: flex;
+      width: 100%;
+      margin: 0 0 14mm 0;
+    }
+    h1, h2 {
+      break-after: avoid;
+      page-break-after: avoid;
+    }
+    .document-content div {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
     @media print {
       body {
         padding: 0;
+      }
+      .document-header {
+        position: fixed;
+        top: -28mm;
+        left: 0;
+        right: 0;
+        height: 22mm;
+        align-items: flex-start;
+        margin: 0 !important;
       }
     }
     @media screen {

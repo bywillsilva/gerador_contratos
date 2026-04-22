@@ -38,6 +38,16 @@ function formatOptionalCurrency(value: string): string {
   return value.trim() ? formatCurrency(value) : '________________';
 }
 
+function parseLocalDate(date: Date | string): Date {
+  if (date instanceof Date) return date;
+
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return new Date(date);
+
+  const [, year, month, day] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day));
+}
+
 function getPaymentMethodLabel(method: PaymentMethod): string {
   switch (method) {
     case 'pix':
@@ -134,7 +144,8 @@ function buildPaymentMethodItems(contractData: ContractData): string[] {
 function buildPaymentClause(contractData: ContractData): string {
   const lines: string[] = [];
   const paymentItems = buildPaymentMethodItems(contractData);
-  const entradaPercentual = contractData.entrada_percentual.trim();
+  const entradaPercentual =
+    contractData.entrada_percentual.trim() || calculateEntryPercentageFromInstallments(contractData);
   const hasCreditInstallment = contractData.parcelas_pagamento.some(
     (installment) => installment.metodo === 'credito'
   );
@@ -246,12 +257,26 @@ export function valueToExtenso(value: string | number): string {
 }
 
 export function formatDate(date: Date | string): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d = parseLocalDate(date);
 
   return d.toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: 'long',
     year: 'numeric',
+  });
+}
+
+function calculateEntryPercentageFromInstallments(contractData: ContractData): string {
+  const total = parseBRCurrency(contractData.valor);
+  const entryValue = parseBRCurrency(contractData.parcelas_pagamento[0]?.valor || '');
+
+  if (!total || !entryValue || Number.isNaN(total) || Number.isNaN(entryValue)) {
+    return '';
+  }
+
+  return ((entryValue / total) * 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
   });
 }
 

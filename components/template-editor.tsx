@@ -22,6 +22,9 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignJustify,
+  IndentIncrease,
+  IndentDecrease,
   List,
   ListOrdered,
   Heading1,
@@ -86,8 +89,10 @@ const FORMAT_MARKERS = {
   numberedList: { start: '1. ', end: '', label: 'Lista Numerada' },
   numberedItem: { start: '1.1. ', end: '', label: 'Item Numerado' },
   numberedSubitem: { start: '1.1.1. ', end: '', label: 'Subitem Numerado' },
+  alignLeft: { start: '[LEFT]', end: '[/LEFT]', label: 'Alinhar Esquerda' },
   alignCenter: { start: '[CENTER]', end: '[/CENTER]', label: 'Centralizar' },
   alignRight: { start: '[RIGHT]', end: '[/RIGHT]', label: 'Alinhar Direita' },
+  alignJustify: { start: '[JUSTIFY]', end: '[/JUSTIFY]', label: 'Justificar' },
 } as const;
 
 const INDENT_TOKEN = '\t';
@@ -100,8 +105,10 @@ const TOOLBAR_BUTTONS = [
   { key: 'heading1', tooltip: 'Titulo principal (# texto)', icon: Heading1 },
   { key: 'heading2', tooltip: 'Subtitulo (## texto)', icon: Heading2 },
   { key: 'separator-2', separator: true },
+  { key: 'alignLeft', tooltip: 'Alinhar a esquerda [LEFT]...[/LEFT]', icon: AlignLeft },
   { key: 'alignCenter', tooltip: 'Centralizar [CENTER]...[/CENTER]', icon: AlignCenter },
   { key: 'alignRight', tooltip: 'Alinhar a direita [RIGHT]...[/RIGHT]', icon: AlignRight },
+  { key: 'alignJustify', tooltip: 'Justificar texto [JUSTIFY]...[/JUSTIFY]', icon: AlignJustify },
   { key: 'separator-3', separator: true },
   { key: 'list', tooltip: 'Item de lista (• texto)', icon: List },
   { key: 'numberedList', tooltip: 'Lista numerada (1. texto)', label: '1.' },
@@ -679,13 +686,28 @@ export function TemplateEditor() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="px-2 text-xs"
+                          className="h-8 w-8 px-0"
                           onClick={() => indentCurrentLine(false)}
                         >
-                          Tab
+                          <IndentIncrease className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent>Aplicar recuo na linha atual</TooltipContent>
+                      <TooltipContent>Aumentar recuo da linha atual</TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 px-0"
+                          onClick={() => indentCurrentLine(true)}
+                        >
+                          <IndentDecrease className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Diminuir recuo da linha atual</TooltipContent>
                     </Tooltip>
                   </div>
                 </div>
