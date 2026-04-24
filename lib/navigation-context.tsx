@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 import type { FormData, ContractTemplate, LogoPosition } from './types';
 import { DEFAULT_DOCUMENT_FONT, DEFAULT_TEMPLATE } from './types';
 
-export type Screen = 'dashboard' | 'editor' | 'form' | 'preview' | 'pdf-merge';
+export type Screen = 'dashboard' | 'editor' | 'form' | 'preview' | 'pdf-merge' | 'pdf-compress';
 
 interface NavigationContextType {
   currentScreen: Screen;

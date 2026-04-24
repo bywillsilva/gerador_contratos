@@ -66,7 +66,7 @@ function getTodayInputValue(): string {
 }
 
 export function ContractForm() {
-  const { navigate, setFormData } = useNavigation();
+  const { navigate, setFormData, formData } = useNavigation();
   const [clientType, setClientType] = useState<ClientType>('fisica');
 
   const [fisicaData, setFisicaData] = useState<Omit<ClientDataFisica, 'tipo'>>({
@@ -119,6 +119,8 @@ export function ContractForm() {
     valor_credito: '',
     parcelas_credito: '',
     entrada_percentual: '',
+    incluir_etapa_medicao_pagamento: true,
+    incluir_saldo_final_pagamento: true,
     observacoes_pagamento: '',
     condicao_fechamento: '',
   });
@@ -131,6 +133,55 @@ export function ContractForm() {
 
     setContractData((prev) => ({ ...prev, valor_extenso: '' }));
   }, [contractData.valor]);
+
+  useEffect(() => {
+    if (!formData) return;
+
+    if (formData.clientData.tipo === 'fisica') {
+      setClientType('fisica');
+      setFisicaData({
+        nome_cliente: formData.clientData.nome_cliente,
+        cpf: formData.clientData.cpf,
+        rg: formData.clientData.rg,
+        profissao: formData.clientData.profissao,
+        endereco: formData.clientData.endereco,
+        cep: formData.clientData.cep,
+        nacionalidade: formData.clientData.nacionalidade,
+        estado_civil: formData.clientData.estado_civil,
+        email: formData.clientData.email,
+        telefone: formData.clientData.telefone,
+      });
+    } else {
+      setClientType('juridica');
+      setJuridicaData({
+        razao_social: formData.clientData.razao_social,
+        nome_fantasia: formData.clientData.nome_fantasia,
+        cnpj: formData.clientData.cnpj,
+        endereco: formData.clientData.endereco,
+        cep: formData.clientData.cep,
+        email: formData.clientData.email,
+        telefone: formData.clientData.telefone,
+        representante_nome: formData.clientData.representante_nome,
+        representante_nacionalidade: formData.clientData.representante_nacionalidade,
+        representante_estado_civil: formData.clientData.representante_estado_civil,
+        representante_profissao: formData.clientData.representante_profissao,
+        representante_rg: formData.clientData.representante_rg,
+        representante_cpf: formData.clientData.representante_cpf,
+        representante_endereco: formData.clientData.representante_endereco,
+        representante_cep: formData.clientData.representante_cep,
+        representante_email: formData.clientData.representante_email,
+        representante_telefone: formData.clientData.representante_telefone,
+      });
+    }
+
+    setContractData({
+      ...formData.contractData,
+      numero_contrato: formData.contractData.numero_contrato || formData.contractData.orcamento_numero,
+      orcamento_numero: formData.contractData.orcamento_numero || formData.contractData.numero_contrato,
+      incluir_etapa_medicao_pagamento: formData.contractData.incluir_etapa_medicao_pagamento ?? true,
+      incluir_saldo_final_pagamento: formData.contractData.incluir_saldo_final_pagamento ?? true,
+    });
+  }, [formData]);
 
   const handleFisicaChange = (field: keyof typeof fisicaData, value: string) => {
     setFisicaData((prev) => ({ ...prev, [field]: value }));
@@ -228,7 +279,14 @@ export function ContractForm() {
 
   const handleContractChange = (field: keyof ContractData, value: string) => {
     setContractData((prev) => {
-      const next = { ...prev, [field]: value };
+      const next =
+        field === 'orcamento_numero' || field === 'numero_contrato'
+          ? {
+              ...prev,
+              numero_contrato: value,
+              orcamento_numero: value,
+            }
+          : { ...prev, [field]: value };
 
       if (field === 'valor' || field === 'data') {
         next.parcelas_pagamento = distributeInstallments(
@@ -255,6 +313,10 @@ export function ContractForm() {
         entrada_percentual: calculateEntryPercentage(next),
       };
     });
+  };
+
+  const handleContractBooleanChange = (field: keyof ContractData, value: boolean) => {
+    setContractData((prev) => ({ ...prev, [field]: value }));
   };
 
   const formatCPFInput = (value: string) => {
@@ -359,9 +421,7 @@ export function ContractForm() {
         fisicaData.nome_cliente.trim() &&
         fisicaData.cpf.length >= 14 &&
         fisicaData.endereco.trim() &&
-        fisicaData.cep.length >= 9 &&
-        fisicaData.email.trim() &&
-        fisicaData.telefone.length >= 14
+        fisicaData.cep.length >= 9
       );
     }
 
@@ -369,11 +429,7 @@ export function ContractForm() {
       juridicaData.razao_social.trim() &&
       juridicaData.cnpj.length >= 18 &&
       juridicaData.endereco.trim() &&
-      juridicaData.cep.length >= 9 &&
-      juridicaData.email.trim() &&
-      juridicaData.telefone.length >= 14 &&
-      juridicaData.representante_nome.trim() &&
-      juridicaData.representante_cpf.length >= 14
+      juridicaData.cep.length >= 9
     );
   };
 
@@ -410,41 +466,38 @@ export function ContractForm() {
   };
 
   return (
-    <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 xl:px-8">
-      <div className="app-hero-surface mb-8 rounded-[1.8rem] px-5 py-6 sm:px-7">
+    <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8">
+      <div className="app-hero-surface mb-8 rounded-lg px-6 py-7 sm:px-8">
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)]">
           <div>
             <span className="app-eyebrow">Dados comerciais</span>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-0.04em] text-foreground">
+            <h2 className="mt-4 text-3xl font-semibold text-foreground sm:text-4xl">
               Preencher Contrato
             </h2>
             <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-              Informe os dados do contratante, da obra e da condicao de pagamento.
-              O contrato final sera montado automaticamente com base neste cadastro.
+              Informe os dados do contratante, da obra e da condição de pagamento. O contrato final será montado
+              automaticamente com base neste cadastro.
             </p>
-            <p className="hidden">
-          Informe os dados do contratante, da obra e da condição de pagamento
-        </p>
-      </div>
+          </div>
 
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <div className="rounded-2xl border border-white/60 bg-white/72 px-4 py-4">
+            <div className="service-card px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Contratante
               </p>
               <p className="mt-2 text-base font-semibold text-foreground">
-                {clientType === 'fisica' ? 'Pessoa Fisica' : 'Pessoa Juridica'}
+                {clientType === 'fisica' ? 'Pessoa Física' : 'Pessoa Jurídica'}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/60 bg-white/72 px-4 py-4">
+            <div className="service-card px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Valor Atual
               </p>
               <p className="mt-2 text-base font-semibold text-foreground">
-                {contractData.valor ? formatCurrency(contractData.valor) : 'Nao informado'}
+                {contractData.valor ? formatCurrency(contractData.valor) : 'Não informado'}
               </p>
             </div>
-            <div className="rounded-2xl border border-white/60 bg-white/72 px-4 py-4">
+            <div className="service-card px-4 py-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Parcelas
               </p>
@@ -457,12 +510,17 @@ export function ContractForm() {
       </div>
 
       <div className="space-y-6">
-        <Card className="border-white/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">Tipo de Contratante</CardTitle>
-            <CardDescription>Escolha se o contratante é pessoa física ou jurídica</CardDescription>
+        <Card className="service-card form-card">
+          <CardHeader className="form-card-header">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <span className="service-icon h-10 w-10">
+                <User className="h-4 w-4" />
+              </span>
+              Identificação do Contratante
+            </CardTitle>
+            <CardDescription>Escolha o tipo de cliente e preencha somente os dados necessários.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="form-card-content">
             <Tabs value={clientType} onValueChange={(value) => setClientType(value as ClientType)}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="fisica" className="flex items-center gap-2">
@@ -476,7 +534,7 @@ export function ContractForm() {
               </TabsList>
 
               <TabsContent value="fisica" className="mt-6">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <Label htmlFor="nome">Nome Completo *</Label>
                     <Input
@@ -542,7 +600,7 @@ export function ContractForm() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="telefone_fisica">Telefone *</Label>
+                    <Label htmlFor="telefone_fisica">Telefone</Label>
                     <Input
                       id="telefone_fisica"
                       value={fisicaData.telefone}
@@ -552,7 +610,7 @@ export function ContractForm() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email_fisica">E-mail *</Label>
+                    <Label htmlFor="email_fisica">E-mail</Label>
                     <Input
                       id="email_fisica"
                       type="email"
@@ -585,7 +643,7 @@ export function ContractForm() {
               </TabsContent>
 
               <TabsContent value="juridica" className="mt-6 space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
                     <Label htmlFor="razao_social">Razão Social *</Label>
                     <Input
@@ -615,7 +673,7 @@ export function ContractForm() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="telefone_juridica">Telefone *</Label>
+                    <Label htmlFor="telefone_juridica">Telefone</Label>
                     <Input
                       id="telefone_juridica"
                       value={juridicaData.telefone}
@@ -626,7 +684,7 @@ export function ContractForm() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="email_juridica">E-mail *</Label>
+                    <Label htmlFor="email_juridica">E-mail</Label>
                     <Input
                       id="email_juridica"
                       type="email"
@@ -657,11 +715,13 @@ export function ContractForm() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border p-4">
-                  <h3 className="text-sm font-semibold text-foreground">Representante Legal</h3>
-                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                <div className="form-subpanel p-4 sm:p-5">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    Representante Legal <span className="font-normal text-muted-foreground">(opcional)</span>
+                  </h3>
+                  <div className="mt-4 grid gap-5 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                      <Label htmlFor="representante_nome">Nome do Representante *</Label>
+                      <Label htmlFor="representante_nome">Nome do Representante</Label>
                       <Input
                         id="representante_nome"
                         value={juridicaData.representante_nome}
@@ -672,7 +732,7 @@ export function ContractForm() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="representante_cpf">CPF *</Label>
+                      <Label htmlFor="representante_cpf">CPF</Label>
                       <Input
                         id="representante_cpf"
                         value={juridicaData.representante_cpf}
@@ -789,32 +849,29 @@ export function ContractForm() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <FileText className="h-5 w-5" />
+        <Card className="service-card form-card">
+          <CardHeader className="form-card-header">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <span className="service-icon h-10 w-10">
+                <FileText className="h-4 w-4" />
+              </span>
               Dados do Contrato
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="numero_contrato">Número do Contrato</Label>
-                <Input
-                  id="numero_contrato"
-                  value={contractData.numero_contrato}
-                  onChange={(e) => handleContractChange('numero_contrato', e.target.value)}
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
-                <Label htmlFor="orcamento_numero">Número do Orçamento</Label>
+          <CardContent className="form-card-content">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Label htmlFor="orcamento_numero">Número da Proposta</Label>
                 <Input
                   id="orcamento_numero"
                   value={contractData.orcamento_numero}
                   onChange={(e) => handleContractChange('orcamento_numero', e.target.value)}
                   className="mt-1.5"
+                  placeholder="Ex: N49"
                 />
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Este número será usado automaticamente no contrato e no orçamento.
+                </p>
               </div>
               <div>
                 <Label htmlFor="data">Data do Contrato</Label>
@@ -851,7 +908,7 @@ export function ContractForm() {
               </div>
               <div className="sm:col-span-2">
                 <Label>Valor por Extenso</Label>
-                <div className="mt-1.5 rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                <div className="form-muted-box mt-1.5 px-3.5 py-3 text-sm leading-6 text-muted-foreground">
                   {contractData.valor
                     ? `${formatCurrency(contractData.valor)} - ${contractData.valor_extenso}`
                     : 'Preencha o valor para gerar o valor por extenso'}
@@ -861,17 +918,19 @@ export function ContractForm() {
           </CardContent>
         </Card>
 
-        <Card className="border-white/60">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <CreditCard className="h-5 w-5" />
+        <Card className="service-card form-card">
+          <CardHeader className="form-card-header">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <span className="service-icon h-10 w-10">
+                <CreditCard className="h-4 w-4" />
+              </span>
               Condição de Pagamento
             </CardTitle>
             <CardDescription>
               A cláusula de pagamento será montada automaticamente com base nestes campos
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="form-card-content space-y-6">
             <div>
               <Label>Forma de Pagamento</Label>
               <RadioGroup
@@ -882,7 +941,7 @@ export function ContractForm() {
                 {PAYMENT_OPTIONS.map((option) => (
                   <label
                     key={option.value}
-                    className="flex cursor-pointer items-start gap-3 rounded-2xl border border-border/80 bg-white/58 p-3 transition-colors hover:border-primary/25 hover:bg-white/80"
+                    className="form-choice flex cursor-pointer items-start gap-3 p-3.5"
                   >
                     <RadioGroupItem value={option.value} className="mt-0.5" />
                     <div>
@@ -894,7 +953,7 @@ export function ContractForm() {
               </RadioGroup>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               <div>
                 <Label htmlFor="quantidade_parcelas">Quantidade de Parcelas</Label>
                 <Input
@@ -917,7 +976,7 @@ export function ContractForm() {
               </div>
             </div>
 
-            <div className="space-y-4 rounded-[1.5rem] border border-border/80 bg-muted/18 p-4 sm:p-5">
+            <div className="form-subpanel space-y-4 p-4 sm:p-5">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Distribuição das Parcelas</h3>
@@ -934,7 +993,7 @@ export function ContractForm() {
                 {contractData.parcelas_pagamento.map((installment, index) => (
                   <div
                     key={installment.id}
-                    className="grid gap-3 rounded-[1.25rem] border border-border/80 bg-white/70 p-3 lg:grid-cols-12"
+                    className="form-subpanel grid gap-3 p-3.5 lg:grid-cols-12"
                   >
                     <div className="lg:col-span-2">
                       <Label>Parcela {index + 1}</Label>
@@ -1004,7 +1063,7 @@ export function ContractForm() {
                 ))}
               </div>
 
-              <div className="rounded-2xl border border-border/80 bg-white/72 px-4 py-3 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+              <div className="form-muted-box px-4 py-3 text-sm">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <span>
                     Valor do contrato: <strong>{formatCurrency(contractData.valor || 0)}</strong>
@@ -1021,7 +1080,50 @@ export function ContractForm() {
               </div>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-5">
+              <div className="form-subpanel p-4 sm:p-5">
+                <h3 className="text-sm font-semibold text-foreground">Cláusulas opcionais do pagamento</h3>
+                <p className="mt-1 text-xs leading-6 text-muted-foreground">
+                  Desative os trechos que não devem aparecer neste contrato específico.
+                </p>
+
+                <div className="mt-4 grid gap-3">
+                  <label className="form-choice flex items-start gap-3 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={contractData.incluir_etapa_medicao_pagamento}
+                      onChange={(e) =>
+                        handleContractBooleanChange('incluir_etapa_medicao_pagamento', e.target.checked)
+                      }
+                      className="mt-1 h-4 w-4 rounded border-border text-primary"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Incluir cláusula 3.4.2</p>
+                      <p className="text-xs leading-6 text-muted-foreground">
+                        Mantém o trecho sobre pagamento na fase de medição técnica e fabricação.
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="form-choice flex items-start gap-3 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={contractData.incluir_saldo_final_pagamento}
+                      onChange={(e) =>
+                        handleContractBooleanChange('incluir_saldo_final_pagamento', e.target.checked)
+                      }
+                      className="mt-1 h-4 w-4 rounded border-border text-primary"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Incluir cláusula 3.4.3</p>
+                      <p className="text-xs leading-6 text-muted-foreground">
+                        Mantém o trecho sobre saldo remanescente de 10% ao final da instalação.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="observacoes_pagamento">Observações da Forma de Pagamento</Label>
                 <Textarea

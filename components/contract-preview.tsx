@@ -34,6 +34,15 @@ function sanitizeFilenamePart(value: string): string {
     .substring(0, 30);
 }
 
+function buildCommercialFilename(formData: ContractFormData) {
+  const proposalNumber = formData.contractData.orcamento_numero.trim() || 'SEM NUMERO';
+  const clientName = getClientName(formData).trim() || 'SEM CLIENTE';
+  const safeProposalNumber = proposalNumber.replace(/[\\/:*?"<>|]/g, '-').trim();
+  const safeClientName = clientName.replace(/[\\/:*?"<>|]/g, '-').trim().toUpperCase();
+
+  return `CAPA CONTRATO - ${safeProposalNumber} - PROPOSTA COMERCIAL - ${safeClientName}.pdf`;
+}
+
 export function ContractPreview() {
   const {
     navigate,
@@ -49,8 +58,8 @@ export function ContractPreview() {
 
   if (!formData) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-        <Card>
+      <div className="mx-auto max-w-4xl px-5 py-10 sm:px-8">
+        <Card className="service-card">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <p className="text-muted-foreground">Nenhum dado de contrato disponível.</p>
             <Button className="mt-4" onClick={() => navigate('form')}>
@@ -285,9 +294,7 @@ export function ContractPreview() {
         pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, PDF_PAGE_WIDTH_MM, PDF_PAGE_HEIGHT_MM);
       }
 
-      const sanitizedName = sanitizeFilenamePart(getClientName(formData)) || 'cliente';
-      const date = formData.contractData.data || new Date().toISOString().split('T')[0];
-      pdf.save(`contrato_${sanitizedName}_${date}.pdf`);
+      pdf.save(buildCommercialFilename(formData));
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
       alert('Nao foi possivel baixar o PDF diretamente. Vou abrir a opcao de impressao para voce salvar.');
@@ -299,13 +306,13 @@ export function ContractPreview() {
   };
 
   return (
-    <div className="mx-auto max-w-[1500px] px-4 py-6 sm:px-6 xl:px-8">
-      <div className="app-hero-surface mb-6 rounded-[1.8rem] px-5 py-5 sm:px-6">
+    <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8">
+      <div className="app-hero-surface mb-6 rounded-lg px-6 py-7 sm:px-8">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="space-y-3">
             <span className="app-eyebrow">Documento final</span>
             <div>
-              <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">Visualizar Contrato</h2>
+              <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Visualizar Contrato</h2>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
                 Revise a composicao do documento antes de imprimir ou baixar o PDF final.
               </p>
@@ -343,14 +350,14 @@ export function ContractPreview() {
       </div>
 
       {/* Documento Simulado A4 */}
-      <Card className="overflow-hidden border-white/60">
-          <CardHeader className="border-b bg-white/55 py-3">
+      <Card className="service-card overflow-hidden py-0">
+          <CardHeader className="border-b border-white/10 bg-white/[0.03] py-3">
             <CardTitle className="flex flex-col gap-1 text-sm font-medium text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
             <span>Prévia do Documento (A4 - 210mm x 297mm)</span>
             <span className="text-xs">O PDF gerado terá esta aparência</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto bg-[#e6f6f6] p-4 sm:p-6">
+        <CardContent className="overflow-x-auto bg-background/40 p-4 sm:p-6">
           {/* Página A4 simulada */}
           <div
             ref={previewRef}
@@ -375,7 +382,7 @@ export function ContractPreview() {
 
       {/* Resumo dos Dados */}
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
-        <Card>
+        <Card className="service-card">
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Cliente</p>
             <p className="font-medium text-foreground">
@@ -385,7 +392,7 @@ export function ContractPreview() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="service-card">
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Valor</p>
             <p className="font-medium text-foreground">
@@ -396,7 +403,7 @@ export function ContractPreview() {
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="service-card">
           <CardContent className="py-4">
             <p className="text-xs text-muted-foreground">Data</p>
             <p className="font-medium text-foreground">
@@ -404,7 +411,7 @@ export function ContractPreview() {
             </p>
           </CardContent>
         </Card>
-        <Card className="lg:col-span-3">
+        <Card className="service-card lg:col-span-3">
           <CardContent className="flex flex-wrap items-center gap-2 py-4">
             <p className="mr-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               Aparencia

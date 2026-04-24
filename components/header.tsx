@@ -1,97 +1,149 @@
 'use client';
 
-import { FileText, Home, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Home, LayoutGrid, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useNavigation, type Screen } from '@/lib/navigation-context';
+
+function getTitle(screen: Screen) {
+  switch (screen) {
+    case 'dashboard':
+      return 'Central Administrativa';
+    case 'editor':
+      return 'Editor de Template';
+    case 'form':
+      return 'Gerador de Contratos';
+    case 'preview':
+      return 'Visualizar Contrato';
+    case 'pdf-merge':
+      return 'Juntar PDFs';
+    case 'pdf-compress':
+      return 'Compactar PDF';
+    default:
+      return 'Central Administrativa';
+  }
+}
+
+function getSubtitle(screen: Screen) {
+  switch (screen) {
+    case 'dashboard':
+      return 'Serviços administrativos, documentos e sistemas conectados em um só lugar.';
+    case 'editor':
+      return 'Padronize modelos, cláusulas, fonte e identidade visual.';
+    case 'form':
+      return 'Preencha os dados e gere o contrato final com segurança.';
+    case 'preview':
+      return 'Revise o documento final antes de imprimir ou baixar.';
+    case 'pdf-merge':
+      return 'Una documentos e anexos em um único arquivo.';
+    case 'pdf-compress':
+      return 'Reduza arquivos PDF preservando legibilidade.';
+    default:
+      return 'Serviços administrativos, documentos e sistemas conectados em um só lugar.';
+  }
+}
+
+const NAV_ITEMS = [
+  { id: 'hub-categories', label: 'Categorias' },
+  { id: 'hub-models', label: 'Modelos' },
+];
 
 export function Header() {
   const { currentScreen, navigate } = useNavigation();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const isDashboard = currentScreen === 'dashboard';
 
-  const getTitle = (screen: Screen) => {
-    switch (screen) {
-      case 'dashboard':
-        return 'Painel Principal';
-      case 'editor':
-        return 'Editor de Template';
-      case 'form':
-        return 'Preencher Contrato';
-      case 'preview':
-        return 'Visualizar Contrato';
-      case 'pdf-merge':
-        return 'Juntar PDFs';
-      default:
-        return 'Gerador de Contratos';
-    }
-  };
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const getSubtitle = (screen: Screen) => {
-    switch (screen) {
-      case 'dashboard':
-        return 'Organize templates, contratos e identidade visual em um unico fluxo.';
-      case 'editor':
-        return 'Estruture o documento com a mesma aparencia da impressao final.';
-      case 'form':
-        return 'Preencha dados comerciais, qualificacao do cliente e pagamento.';
-      case 'preview':
-        return 'Revise o contrato final com a mesma composicao do PDF.';
-      case 'pdf-merge':
-        return 'Una contrato, anexos e documentos em um unico PDF final.';
-      default:
-        return 'Sistema profissional para contratos de esquadrias de aluminio.';
+  const scrollToSection = (id: string) => {
+    if (typeof document === 'undefined') {
+      return;
     }
+
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/45 bg-background/78 backdrop-blur-2xl">
-      <div className="mx-auto max-w-[1600px] px-4 py-4 sm:px-6 xl:px-8">
-        <div className="app-hero-surface rounded-[1.75rem] px-4 py-4 sm:px-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary shadow-[0_18px_34px_-20px_rgba(0,126,130,0.7)] ring-1 ring-white/60">
-                <FileText className="h-6 w-6 text-primary-foreground" />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="app-eyebrow">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Workspace Contratual
-                  </span>
-                  <Badge variant="outline">Esquadrias de Aluminio</Badge>
-                </div>
-
-                <div>
-                  <h1 className="text-xl font-semibold tracking-[-0.03em] text-foreground sm:text-2xl">
-                    Gerador de Contratos
-                  </h1>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">
-                    {getSubtitle(currentScreen)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between xl:justify-end">
-              <div className="rounded-2xl border border-white/60 bg-white/62 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Tela Atual
-                </p>
-                <p className="mt-1 text-sm font-semibold text-foreground">{getTitle(currentScreen)}</p>
-              </div>
-
-              {currentScreen !== 'dashboard' ? (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('dashboard')}
-                  className="self-start sm:self-auto"
-                >
-                  <Home className="mr-2 h-4 w-4" />
-                  Inicio
-                </Button>
-              ) : null}
-            </div>
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-background/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-5 py-4 sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-foreground text-background">
+            <LayoutGrid className="h-5 w-5" />
           </div>
+
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+              Workspace ArtGlass
+            </p>
+            <h1 className="mt-1 truncate text-xl font-semibold text-foreground">{getTitle(currentScreen)}</h1>
+            <p className="mt-0.5 max-w-2xl text-sm leading-6 text-muted-foreground">{getSubtitle(currentScreen)}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+          {isDashboard ? (
+            <nav className="flex flex-wrap items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+              {NAV_ITEMS.map((item) => (
+                <Button
+                  key={item.id}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => scrollToSection(item.id)}
+                  className="h-8 rounded-md px-3 text-muted-foreground hover:bg-white/[0.08] hover:text-foreground"
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </nav>
+          ) : null}
+
+          {mounted ? (
+            <ToggleGroup
+              type="single"
+              value={theme === 'light' ? 'light' : 'dark'}
+              onValueChange={(value) => {
+                if (value === 'light' || value === 'dark') {
+                  setTheme(value);
+                }
+              }}
+              variant="outline"
+              size="sm"
+              className="rounded-lg border border-white/10 bg-white/[0.03] p-1"
+            >
+              <ToggleGroupItem
+                value="dark"
+                aria-label="Tema escuro"
+                className="h-8 w-8 rounded-md border-0 bg-transparent p-0 text-muted-foreground data-[state=on]:bg-foreground data-[state=on]:text-background"
+              >
+                <Moon className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="light"
+                aria-label="Tema claro"
+                className="h-8 w-8 rounded-md border-0 bg-transparent p-0 text-muted-foreground data-[state=on]:bg-foreground data-[state=on]:text-background"
+              >
+                <Sun className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
+          ) : (
+            <div
+              aria-hidden="true"
+              className="flex h-10 w-[76px] rounded-lg border border-white/10 bg-white/[0.03] p-1"
+            />
+          )}
+
+          {!isDashboard ? (
+            <Button variant="outline" onClick={() => navigate('dashboard')} className="h-10 rounded-lg">
+              <Home className="h-4 w-4" />
+              Central
+            </Button>
+          ) : null}
         </div>
       </div>
     </header>

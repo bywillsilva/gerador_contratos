@@ -79,6 +79,8 @@ export interface ContractData {
   valor_credito: string;
   parcelas_credito: string;
   entrada_percentual: string;
+  incluir_etapa_medicao_pagamento: boolean;
+  incluir_saldo_final_pagamento: boolean;
   observacoes_pagamento: string;
   condicao_fechamento: string;
 }
@@ -98,6 +100,13 @@ export interface ContractTemplate {
   logoPosition: LogoPosition;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ContractTemplateTransferFile {
+  version: 1;
+  exportedAt: string;
+  app: 'gerador-contratos';
+  template: ContractTemplate;
 }
 
 export const AVAILABLE_TAGS = [

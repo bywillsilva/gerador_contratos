@@ -68,6 +68,7 @@ interface DocumentRenderOptions {
 const BULLET_SYMBOL = '\u2022';
 const BULLET_PREFIXES = [`${BULLET_SYMBOL} `, 'â€¢ ', 'Ã¢â‚¬Â¢ '];
 const ORDERED_LIST_PATTERN = /^(\d+(?:\.\d+)*\.?)\s+(.+)$/;
+const SIGNATURE_LINE_PATTERN = /_{6,}/g;
 
 function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -82,6 +83,13 @@ function highlightDynamicTags(value: string): string {
 
 function applyInlineFormatting(value: string, options: RenderOptions): string {
   let html = escapeHtml(value);
+  const preservedLines: string[] = [];
+
+  html = html.replace(SIGNATURE_LINE_PATTERN, (match) => {
+    const token = `%%SIGNATURELINE${preservedLines.length}%%`;
+    preservedLines.push(match);
+    return token;
+  });
 
   if (options.highlightTags) {
     html = highlightDynamicTags(html);
@@ -90,6 +98,10 @@ function applyInlineFormatting(value: string, options: RenderOptions): string {
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: bold;">$1</strong>');
   html = html.replace(/__(.+?)__/g, '<u style="text-decoration: underline;">$1</u>');
   html = html.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em style="font-style: italic;">$1</em>');
+  html = html.replace(/%%SIGNATURELINE(\d+)%%/g, (_, index) => {
+    const signatureLine = preservedLines[Number(index)] || '';
+    return `<span style="white-space: pre; letter-spacing: 0.02em;">${signatureLine}</span>`;
+  });
 
   return html;
 }

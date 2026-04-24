@@ -11,6 +11,8 @@ import {
 } from 'react';
 import {
   Save,
+  FileUp,
+  FileDown,
   RotateCcw,
   ArrowRight,
   Tag,
@@ -69,7 +71,7 @@ import {
   ResizableHandle,
 } from '@/components/ui/resizable';
 import { useNavigation } from '@/lib/navigation-context';
-import { saveTemplate, generateId } from '@/lib/contract-utils';
+import { saveTemplate, generateId, exportTemplateFile, importTemplateFile } from '@/lib/contract-utils';
 import {
   AVAILABLE_TAGS,
   DEFAULT_DOCUMENT_FONT,
@@ -150,6 +152,7 @@ export function TemplateEditor() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTemplateName(selectedTemplate?.name || '');
@@ -344,13 +347,60 @@ export function TemplateEditor() {
     setSaveDialogOpen(false);
   };
 
+  const buildCurrentTemplate = () => ({
+    id: selectedTemplate?.id || generateId(),
+    name: templateName.trim() || selectedTemplate?.name || 'Template sem nome',
+    content: templateContent,
+    fontFamily: templateFontFamily,
+    logoDataUrl: templateLogoDataUrl,
+    logoWidthMm: templateLogoWidthMm,
+    logoPosition: templateLogoPosition,
+    createdAt: selectedTemplate?.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  });
+
+  const handleExportTemplate = () => {
+    exportTemplateFile(buildCurrentTemplate());
+  };
+
+  const handleImportTemplate = useCallback(
+    async (event: ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = '';
+      if (!file) return;
+
+      try {
+        const importedTemplate = await importTemplateFile(file);
+        setTemplateContent(importedTemplate.content);
+        setTemplateFontFamily(importedTemplate.fontFamily);
+        setTemplateLogoDataUrl(importedTemplate.logoDataUrl);
+        setTemplateLogoWidthMm(importedTemplate.logoWidthMm);
+        setTemplateLogoPosition(importedTemplate.logoPosition);
+        setTemplateName(importedTemplate.name);
+        setSelectedTemplate(importedTemplate);
+        saveTemplate(importedTemplate);
+      } catch (error) {
+        console.error('Erro ao importar template:', error);
+        alert('Nao foi possivel importar este template. Verifique se o arquivo pertence ao Gerador de Contratos.');
+      }
+    },
+    [
+      setSelectedTemplate,
+      setTemplateContent,
+      setTemplateFontFamily,
+      setTemplateLogoDataUrl,
+      setTemplateLogoPosition,
+      setTemplateLogoWidthMm,
+    ]
+  );
+
   const triggerLogoPicker = () => {
     logoInputRef.current?.click();
   };
 
   const editorPanel = (
-    <div className="flex h-full min-h-0 flex-col bg-white/26">
-      <div className="border-b border-border/60 bg-white/38 p-4">
+    <div className="flex h-full min-h-0 flex-col bg-background/30">
+      <div className="border-b border-white/10 bg-white/[0.03] p-4">
         <div className="flex flex-col gap-3 2xl:flex-row 2xl:items-end 2xl:justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -381,9 +431,9 @@ export function TemplateEditor() {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => insertTag(tag)}
-                      className="flex shrink-0 items-center gap-2 rounded-full border border-border/80 bg-white/76 px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:border-primary/30 hover:bg-white"
+                      className="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-left text-xs font-medium text-foreground transition-colors hover:bg-white/[0.08]"
                     >
-                      <Badge variant="secondary" className="bg-primary/10 text-primary">
+                <Badge variant="secondary" className="bg-primary/10 text-primary">
                         {label}
                       </Badge>
                       <span className="font-mono text-[11px] text-muted-foreground">{tag}</span>
@@ -398,7 +448,7 @@ export function TemplateEditor() {
             ))}
 
             {filteredTags.length === 0 ? (
-              <div className="rounded-full border border-dashed border-border px-3 py-2 text-xs text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-white/10 px-3 py-2 text-xs text-muted-foreground">
                 Nenhuma tag encontrada.
               </div>
             ) : null}
@@ -412,26 +462,26 @@ export function TemplateEditor() {
           value={templateContent}
           onChange={(e) => setTemplateContent(e.target.value)}
           onKeyDown={handleEditorKeyDown}
-          className="min-h-[520px] flex-1 resize-none rounded-[1.5rem] border border-border/80 bg-white/82 p-6 font-mono text-sm leading-relaxed shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_20px_40px_-34px_rgba(15,23,42,0.4)] outline-none focus:ring-2 focus:ring-ring"
+          className="min-h-[520px] flex-1 resize-none rounded-lg border border-white/10 bg-background/80 p-6 font-mono text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring"
           placeholder="Digite o conteudo do seu contrato aqui..."
         />
 
-        <div className="mt-4 rounded-[1.5rem] border border-border/70 bg-muted/15 p-4">
+        <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.03] p-4">
           <p className="mb-3 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
             Guia Rapido
           </p>
           <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-2 2xl:grid-cols-4">
             <span>
-              <code className="rounded bg-white px-1.5 py-0.5">**texto**</code> = <strong>Negrito</strong>
+              <code className="rounded bg-white/[0.08] px-1.5 py-0.5">**texto**</code> = <strong>Negrito</strong>
             </span>
             <span>
-              <code className="rounded bg-white px-1.5 py-0.5">_texto_</code> = <em>Italico</em>
+              <code className="rounded bg-white/[0.08] px-1.5 py-0.5">_texto_</code> = <em>Italico</em>
             </span>
             <span>
-              <code className="rounded bg-white px-1.5 py-0.5">1.1. texto</code> = Item numerado
+              <code className="rounded bg-white/[0.08] px-1.5 py-0.5">1.1. texto</code> = Item numerado
             </span>
             <span>
-              <code className="rounded bg-white px-1.5 py-0.5">Tab</code> = Recuo | <code className="rounded bg-white px-1.5 py-0.5">Shift+Tab</code> = Remover recuo
+              <code className="rounded bg-white/[0.08] px-1.5 py-0.5">Tab</code> = Recuo | <code className="rounded bg-white/[0.08] px-1.5 py-0.5">Shift+Tab</code> = Remover recuo
             </span>
           </div>
         </div>
@@ -440,7 +490,7 @@ export function TemplateEditor() {
   );
 
   const previewPanel = (
-    <div className="flex h-full min-h-0 flex-col bg-[#e6f6f6]/90 p-4">
+    <div className="flex h-full min-h-0 flex-col bg-background/30 p-4">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -454,14 +504,14 @@ export function TemplateEditor() {
         <Badge variant="outline">Sincronizada</Badge>
       </div>
 
-      <div className="flex min-h-0 flex-1 flex-col rounded-[1.6rem] border border-white/60 bg-white/72 p-4 shadow-[0_24px_50px_-40px_rgba(15,23,42,0.5)]">
+      <div className="flex min-h-0 flex-1 flex-col rounded-lg border border-white/10 bg-white/[0.03] p-4">
         <div className="mb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
           <span>Documento renderizado com fonte e cabecalho atuais</span>
           <span>{selectedFontLabel}</span>
         </div>
 
         <div
-          className="min-h-0 flex-1 overflow-auto rounded-[1.4rem] border border-border bg-white p-5 sm:p-6"
+          className="min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-white p-5 sm:p-6"
           style={{
             fontFamily: templateFontFamily || DOCUMENT_STYLES.page.fontFamily,
             fontSize: DOCUMENT_STYLES.page.fontSize,
@@ -475,7 +525,7 @@ export function TemplateEditor() {
   );
 
   return (
-    <div className="w-full px-3 py-6 sm:px-4 xl:px-6 2xl:px-8">
+    <div className="w-full px-5 py-10 sm:px-8">
       <input
         ref={logoInputRef}
         type="file"
@@ -483,13 +533,20 @@ export function TemplateEditor() {
         onChange={handleLogoUpload}
         className="hidden"
       />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json,.gctemplate.json,application/json"
+        onChange={handleImportTemplate}
+        className="hidden"
+      />
 
-      <div className="app-hero-surface mb-6 rounded-[1.8rem] px-5 py-5 sm:px-6">
+      <div className="app-hero-surface mb-6 rounded-lg px-6 py-7 sm:px-8">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="space-y-3">
             <span className="app-eyebrow">Workspace do Template</span>
             <div>
-              <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">
+              <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">
                 Editor de Template
               </h2>
               <p className="mt-2 max-w-3xl text-sm leading-7 text-muted-foreground">
@@ -507,6 +564,16 @@ export function TemplateEditor() {
             <Button variant="outline" onClick={handleReset}>
               <RotateCcw className="mr-2 h-4 w-4" />
               Restaurar Padrao
+            </Button>
+
+            <Button variant="outline" onClick={() => importInputRef.current?.click()}>
+              <FileUp className="mr-2 h-4 w-4" />
+              Importar
+            </Button>
+
+            <Button variant="outline" onClick={handleExportTemplate}>
+              <FileDown className="mr-2 h-4 w-4" />
+              Exportar
             </Button>
 
             <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
@@ -552,8 +619,8 @@ export function TemplateEditor() {
         </div>
       </div>
 
-      <Card className="overflow-hidden border-white/60">
-        <CardHeader className="border-b border-border/60 bg-white/52 pb-4">
+      <Card className="service-card overflow-hidden py-0">
+        <CardHeader className="border-b border-white/10 bg-white/[0.03] pb-4">
           <div className="space-y-4">
             <div className="flex flex-col gap-2 2xl:flex-row 2xl:items-end 2xl:justify-between">
               <div>
@@ -568,7 +635,7 @@ export function TemplateEditor() {
             <TooltipProvider>
               <div className="-mx-2 overflow-x-auto px-2 pb-1">
                 <div className="flex min-w-max items-stretch gap-3">
-                  <div className="flex items-center gap-3 rounded-[1.2rem] border border-border/80 bg-white/78 px-3 py-2">
+                  <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Fonte
                     </span>
@@ -588,7 +655,7 @@ export function TemplateEditor() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3 rounded-[1.2rem] border border-border/80 bg-white/78 px-3 py-2">
+                  <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
                     <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Logo
                     </span>
@@ -622,7 +689,7 @@ export function TemplateEditor() {
                       }}
                       variant="outline"
                       size="sm"
-                      className="rounded-xl"
+                      className="rounded-lg"
                     >
                       {LOGO_POSITION_OPTIONS.map((option) => {
                         const Icon = option.icon;
@@ -649,7 +716,7 @@ export function TemplateEditor() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 rounded-[1.2rem] border border-border/80 bg-white/78 px-3 py-2">
+                  <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2">
                     <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                       Texto
                     </span>
@@ -728,7 +795,7 @@ export function TemplateEditor() {
                 {editorPanel}
               </ResizablePanel>
 
-              <ResizableHandle withHandle className="bg-white/68" />
+              <ResizableHandle withHandle className="bg-white/[0.08]" />
 
               <ResizablePanel defaultSize={44} minSize={28}>
                 {previewPanel}

@@ -133,8 +133,8 @@ export function PdfMerger() {
   const canMerge = pdfs.length >= 2 && !isMerging;
 
   return (
-    <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 xl:px-8">
-      <div className="app-hero-surface mb-6 rounded-[1.8rem] px-5 py-6 sm:px-7">
+    <div className="mx-auto max-w-[1200px] px-5 py-10 sm:px-8">
+      <div className="app-hero-surface mb-6 rounded-lg px-6 py-7 sm:px-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-3">
             <span className="app-eyebrow">
@@ -142,7 +142,7 @@ export function PdfMerger() {
               Ferramenta PDF
             </span>
             <div>
-              <h2 className="text-3xl font-semibold tracking-[-0.04em] text-foreground">Juntar PDFs</h2>
+              <h2 className="text-3xl font-semibold text-foreground sm:text-4xl">Juntar PDFs</h2>
               <p className="mt-2 max-w-2xl text-sm leading-7 text-muted-foreground">
                 Selecione quantos PDFs quiser, ajuste a ordem e gere um unico arquivo final.
               </p>
@@ -170,7 +170,7 @@ export function PdfMerger() {
         </div>
       </div>
 
-      <Card className="border-white/60">
+      <Card className="service-card">
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -202,9 +202,9 @@ export function PdfMerger() {
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="flex w-full flex-col items-center justify-center rounded-[1.35rem] border border-dashed border-primary/30 bg-primary/5 px-5 py-12 text-center transition-colors hover:bg-primary/8"
+              className="flex w-full flex-col items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/[0.03] px-5 py-12 text-center transition-colors hover:bg-white/[0.06]"
             >
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <div className="service-icon">
                 <Upload className="h-6 w-6" />
               </div>
               <span className="mt-4 text-base font-semibold text-foreground">Selecionar PDFs</span>
@@ -217,9 +217,9 @@ export function PdfMerger() {
               {pdfs.map((item, index) => (
                 <div
                   key={item.id}
-                  className="grid gap-3 rounded-[1.35rem] border border-border/80 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] md:grid-cols-[auto_minmax(0,1fr)_auto]"
+                  className="grid gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-4 md:grid-cols-[auto_minmax(0,1fr)_auto]"
                 >
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <div className="service-icon">
                     <FileCheck2 className="h-5 w-5" />
                   </div>
 
@@ -271,7 +271,7 @@ export function PdfMerger() {
           )}
 
           {error ? (
-            <div className="rounded-2xl border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">
+            <div className="rounded-lg border border-destructive/25 bg-destructive/8 px-4 py-3 text-sm text-destructive">
               {error}
             </div>
           ) : null}

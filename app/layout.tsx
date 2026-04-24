@@ -1,19 +1,20 @@
-import type { Metadata } from 'next'
-import { Manrope, Merriweather } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Manrope, Merriweather } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { ThemeProvider } from '@/components/theme-provider';
+import './globals.css';
 
-const manrope = Manrope({ 
-  subsets: ["latin"],
+const manrope = Manrope({
+  subsets: ['latin'],
   variable: '--font-manrope',
-  display: 'swap'
+  display: 'swap',
 });
 
-const merriweather = Merriweather({ 
-  subsets: ["latin"],
+const merriweather = Merriweather({
+  subsets: ['latin'],
   weight: ['400', '500', '700'],
   variable: '--font-merriweather',
-  display: 'swap'
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -37,19 +38,21 @@ export const metadata: Metadata = {
     ],
     apple: '/apple-icon.png',
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-BR" className="bg-background">
+    <html lang="pt-BR" suppressHydrationWarning>
       <body className={`${manrope.variable} ${merriweather.variable} font-sans antialiased`}>
-        {children}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+          {children}
+          {process.env.NODE_ENV === 'production' && <Analytics />}
+        </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
