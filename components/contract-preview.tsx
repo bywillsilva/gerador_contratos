@@ -18,6 +18,67 @@ const PDF_PAGE_HEIGHT_MM = 297;
 const PDF_PAGE_MARGIN_MM = 20;
 const MM_TO_PX = 96 / 25.4;
 
+async function waitForDocumentAssets(root: HTMLElement) {
+  const images = Array.from(root.querySelectorAll('img'));
+
+  await Promise.all(
+    images.map(
+      (image) =>
+        new Promise<void>((resolve) => {
+          if (image.complete) {
+            resolve();
+            return;
+          }
+
+          image.onload = () => resolve();
+          image.onerror = () => resolve();
+        })
+    )
+  );
+
+  if ('fonts' in document) {
+    await document.fonts.ready;
+  }
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function prepareHtml2CanvasClone(clonedDocument: Document, clonedElement: HTMLElement) {
+  clonedDocument.querySelectorAll('style, link[rel="stylesheet"]').forEach((node) => node.remove());
+
+  const rootNodes = [
+    clonedDocument.documentElement,
+    clonedDocument.body,
+    clonedElement,
+    ...Array.from(clonedElement.querySelectorAll<HTMLElement>('*')),
+  ];
+
+  rootNodes.forEach((node) => {
+    node.style.setProperty('background-image', 'none', 'important');
+    node.style.setProperty('box-shadow', 'none', 'important');
+    node.style.setProperty('caret-color', '#000000', 'important');
+    node.style.setProperty('outline-color', 'transparent', 'important');
+    node.style.setProperty('text-decoration-color', '#000000', 'important');
+  });
+
+  clonedDocument.documentElement.style.setProperty('background', '#ffffff', 'important');
+  clonedDocument.body.style.setProperty('background', '#ffffff', 'important');
+  clonedDocument.body.style.setProperty('color', '#000000', 'important');
+  clonedElement.style.setProperty('background', '#ffffff', 'important');
+  clonedElement.style.setProperty('color', '#000000', 'important');
+  clonedElement.style.setProperty('border-color', 'transparent', 'important');
+}
+
 function getClientName(formData: ContractFormData) {
   return formData.clientData.tipo === 'fisica'
     ? (formData.clientData as ClientDataFisica).nome_cliente
@@ -55,6 +116,7 @@ export function ContractPreview() {
   } = useNavigation();
   const previewRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pdfError, setPdfError] = useState('');
 
   if (!formData) {
     return (
@@ -116,107 +178,15 @@ export function ContractPreview() {
     }, 500);
   };
 
-  // Função para gerar PDF usando html2canvas + jsPDF (alternativa)
-  const generatePDF = async () => {
-    setIsGenerating(true);
-    handlePrint();
-    window.setTimeout(() => {
-      setIsGenerating(false);
-    }, 700);
-    return;
-    /*
-    try {
-      const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
-
-      if (!previewRef.current) {
-        throw new Error('Elemento de preview não encontrado');
-      }
-
-      // Renderizar o conteúdo em canvas
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      
-      // Criar PDF A4
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      
-      // Calcular dimensões mantendo proporção
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Se a imagem é mais alta que uma página, dividir em múltiplas páginas
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // Nome do arquivo
-      const clientName =
-        formData.clientData.tipo === 'fisica'
-          ? (formData.clientData as ClientDataFisica).nome_cliente
-          : formData.clientData.razao_social;
-
-      const sanitizedName = clientName
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-zA-Z0-9]/g, '_')
-        .substring(0, 30);
-
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `contrato_${sanitizedName}_${date}.pdf`;
-
-      pdf.save(filename);
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      // Fallback para impressão
-      alert('Não foi possível gerar o PDF diretamente. Use a opção de impressão e salve como PDF.');
-      handlePrint();
-    } finally {
-      setIsGenerating(false);
-    }
-    */
-  };
-
   const downloadPDFDirectly = async () => {
     setIsGenerating(true);
+    setPdfError('');
 
     let staging: HTMLDivElement | null = null;
 
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const { jsPDF } = await import('jspdf');
-
-      if (!previewRef.current) {
-        throw new Error('Elemento de preview nao encontrado');
-      }
-
-      const sourceHeader = previewRef.current.querySelector('.document-header');
-      const sourceContent = previewRef.current.querySelector('.document-content');
-
-      if (!sourceContent) {
-        throw new Error('Conteudo do documento nao encontrado');
-      }
+      const { jsPDF } = await import('jspdf/dist/jspdf.es.min.js');
 
       staging = document.createElement('div');
       staging.style.position = 'fixed';
@@ -224,11 +194,27 @@ export function ContractPreview() {
       staging.style.top = '0';
       staging.style.width = `${PDF_PAGE_WIDTH_MM}mm`;
       staging.style.background = '#ffffff';
+      staging.style.pointerEvents = 'none';
       staging.style.fontFamily = templateFontFamily || DOCUMENT_STYLES.page.fontFamily;
       staging.style.fontSize = DOCUMENT_STYLES.page.fontSize;
       staging.style.lineHeight = DOCUMENT_STYLES.page.lineHeight;
       staging.style.color = DOCUMENT_STYLES.page.color;
       document.body.appendChild(staging);
+
+      const sourceWrapper = document.createElement('div');
+      sourceWrapper.style.width = '100%';
+      sourceWrapper.innerHTML = htmlContent;
+      staging.appendChild(sourceWrapper);
+
+      const sourceHeader = sourceWrapper.querySelector('.document-header');
+      const sourceContent = sourceWrapper.querySelector('.document-content');
+
+      if (!sourceContent) {
+        throw new Error('Conteúdo do documento não encontrado para geração do PDF.');
+      }
+
+      const sourceChildren = Array.from(sourceContent.children);
+      sourceWrapper.remove();
 
       const pages: HTMLDivElement[] = [];
       const innerHeightPx = (PDF_PAGE_HEIGHT_MM - PDF_PAGE_MARGIN_MM * 2) * MM_TO_PX;
@@ -236,7 +222,7 @@ export function ContractPreview() {
       const createPage = () => {
         const page = document.createElement('div');
         page.style.width = `${PDF_PAGE_WIDTH_MM}mm`;
-        page.style.minHeight = `${PDF_PAGE_HEIGHT_MM}mm`;
+        page.style.height = `${PDF_PAGE_HEIGHT_MM}mm`;
         page.style.boxSizing = 'border-box';
         page.style.padding = `${PDF_PAGE_MARGIN_MM}mm`;
         page.style.background = '#ffffff';
@@ -259,7 +245,7 @@ export function ContractPreview() {
 
       let currentContent = createPage();
 
-      Array.from(sourceContent.children).forEach((child) => {
+      sourceChildren.forEach((child) => {
         const clone = child.cloneNode(true);
         currentContent.appendChild(clone);
 
@@ -273,6 +259,8 @@ export function ContractPreview() {
         }
       });
 
+      await waitForDocumentAssets(staging);
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -285,20 +273,25 @@ export function ContractPreview() {
           useCORS: true,
           logging: false,
           backgroundColor: '#ffffff',
+          onclone: (clonedDocument, clonedElement) => {
+            prepareHtml2CanvasClone(clonedDocument, clonedElement as HTMLElement);
+          },
         });
 
         if (index > 0) {
           pdf.addPage();
         }
 
-        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, PDF_PAGE_WIDTH_MM, PDF_PAGE_HEIGHT_MM);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.96), 'JPEG', 0, 0, PDF_PAGE_WIDTH_MM, PDF_PAGE_HEIGHT_MM);
       }
 
-      pdf.save(buildCommercialFilename(formData));
+      downloadBlob(pdf.output('blob'), buildCommercialFilename(formData));
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
-      alert('Nao foi possivel baixar o PDF diretamente. Vou abrir a opcao de impressao para voce salvar.');
-      handlePrint();
+      const detail = error instanceof Error ? error.message : 'Erro inesperado ao montar o arquivo.';
+      const message = `Não foi possível baixar o PDF diretamente. ${detail}`;
+      setPdfError(message);
+      alert(`${message} O botão Imprimir continua disponível como alternativa.`);
     } finally {
       staging?.remove();
       setIsGenerating(false);
@@ -320,33 +313,36 @@ export function ContractPreview() {
           </div>
 
           <div className="flex flex-wrap gap-2 sm:justify-end">
-          <Button variant="outline" onClick={() => navigate('form')}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Editar Dados
-          </Button>
-          <Button variant="outline" onClick={() => navigate('editor')}>
-            <Edit className="mr-2 h-4 w-4" />
-            Editar Template
-          </Button>
-          <Button variant="outline" onClick={handlePrint}>
-            <Printer className="mr-2 h-4 w-4" />
-            Imprimir
-          </Button>
-          <Button onClick={downloadPDFDirectly} disabled={isGenerating}>
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Gerando...
-              </>
-            ) : (
-              <>
-                <Download className="mr-2 h-4 w-4" />
-                Baixar PDF
-              </>
-            )}
-          </Button>
+            <Button variant="outline" onClick={() => navigate('form')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Editar Dados
+            </Button>
+            <Button variant="outline" onClick={() => navigate('editor')}>
+              <Edit className="mr-2 h-4 w-4" />
+              Editar Template
+            </Button>
+            <Button variant="outline" onClick={handlePrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Imprimir
+            </Button>
+            <Button onClick={downloadPDFDirectly} disabled={isGenerating}>
+              {isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar PDF
+                </>
+              )}
+            </Button>
+            {pdfError ? (
+              <p className="basis-full text-xs leading-6 text-destructive sm:text-right">{pdfError}</p>
+            ) : null}
+          </div>
         </div>
-      </div>
       </div>
 
       {/* Documento Simulado A4 */}
